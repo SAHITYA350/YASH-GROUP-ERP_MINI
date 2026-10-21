@@ -93,6 +93,10 @@ body {
   flex-direction: column;
   flex-shrink: 0;
   border-right: 1px solid var(--sidebar-border);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 40;
 }
 
 .sidebar-header {
