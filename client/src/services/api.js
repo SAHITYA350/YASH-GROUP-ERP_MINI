@@ -1,6 +1,5 @@
 // client/src/services/api.js
 
-import axios from "axios";
 export const API_BASE = 'http://localhost:5000/api';
 
 async function request(url, options = {}) {
@@ -79,25 +78,4 @@ export const erpApi = {
   updateTaskStatus: (id, status) => request(`/tasks/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 };
 
-
-const api = axios.create({
-  baseURL: "/api",
-  withCredentials: true,
-  headers: { "Content-Type": "application/json" },
-});
-
-api.interceptors.request.use((config) => {
-  const csrf = document.cookie
-    .split("; ")
-    .find((cookie) => cookie.startsWith("yash_csrf="))
-    ?.split("=")[1];
-
-  if (csrf) config.headers["x-csrf-token"] = csrf;
-  return config;
-});
-
-export function getApiErrorMessage(error) {
-  return error.response?.data?.error?.message || error.message || "Request failed";
-}
-
-export default api;
+export default erpApi;
