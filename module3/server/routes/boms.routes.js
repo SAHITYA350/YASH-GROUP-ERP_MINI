@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
+import { validateBOMCreate } from "../validators/engineering.validator.js";
 
 const router = Router();
 
@@ -76,7 +77,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST /api/boms - Create a new BOM revision
-router.post("/", async (req, res) => {
+router.post("/", validateBOMCreate, async (req, res) => {
   try {
     const { productId, revision, status = "DRAFT", notes, items = [], operations = [] } = req.body;
 

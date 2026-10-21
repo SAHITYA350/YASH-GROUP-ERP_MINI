@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
+import { validateProductCreate } from "../validators/engineering.validator.js";
 
 const router = Router();
 
@@ -130,7 +131,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST /api/products - Create a new product
-router.post("/", async (req, res) => {
+router.post("/", validateProductCreate, async (req, res) => {
   try {
     const {
       sku,

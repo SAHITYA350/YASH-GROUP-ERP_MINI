@@ -193,7 +193,7 @@ export default function App() {
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <div className="header-status-pill">
               <span className="pulse-dot" />
-              <span>PostgreSQL Connected: Port 5003</span>
+              <span>PostgreSQL Connected: Port 5000</span>
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.82rem" }}>
