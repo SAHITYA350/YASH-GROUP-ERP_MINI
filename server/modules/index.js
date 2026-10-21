@@ -4,7 +4,9 @@ import { prisma } from '../lib/prisma.js';
 import projectRoutes from './project/project.routes.js';
 import installationRoutes from './installation/installation.routes.js';
 import serviceTicketRoutes from './serviceTicket/serviceTicket.routes.js';
-import module2Routes from './module2/module2.routes.js';
+import vendorRoutes from './vendor/vendor.routes.js';
+import procurementRoutes from './procurement/procurement.routes.js';
+import inventoryRoutes from './inventory/inventory.routes.js';
 
 const router = express.Router();
 
@@ -190,10 +192,12 @@ router.get('/trace/:projectId', async (req, res) => {
   }
 });
 
-// Mount feature routers
+// Mount feature routers (each in its own dedicated module folder)
 router.use(projectRoutes);
 router.use(installationRoutes);
 router.use(serviceTicketRoutes);
-router.use(module2Routes);
+router.use(vendorRoutes);
+router.use(procurementRoutes);
+router.use(inventoryRoutes);
 
 export default router;
