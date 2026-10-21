@@ -1,4 +1,3 @@
-// client/src/App.jsx
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
@@ -10,7 +9,7 @@ import TopBar from './components/layout/TopBar';
 import { useModule5 } from './features/module5/useModule5';
 import { useModule2 } from './features/module2/useModule2';
 
-// Feature Modules: Views
+// Feature Modules: Views (Module 2 & Module 5)
 import ProjectsView from './features/module5/projects/ProjectsView';
 import InstallationsView from './features/module5/installations/InstallationsView';
 import ServiceView from './features/module5/service/ServiceView';
@@ -22,11 +21,51 @@ import InventoryView from './features/module2/inventory/InventoryView';
 import Module5ModalContainer from './features/module5/Module5ModalContainer';
 import Module2ModalContainer from './features/module2/Module2ModalContainer';
 
+// Feature Modules: Module 7 Pages
+import EmployeesPayroll from './pages/EmployeesPayroll';
+import TasksApprovals from './pages/TasksApprovals';
+import LeaveManagement from './pages/LeaveManagement';
+import ManagementMIS from './pages/ManagementMIS';
+import MediaLibrary from './pages/MediaLibrary';
+
+function SafePage({ component: Component, title, ...props }) {
+  try {
+    return <Component {...props} />;
+  } catch (error) {
+    console.error(`Failed to render ${title}:`, error);
+    return (
+      <div className="page-container" style={{
+        display: 'grid',
+        placeItems: 'center',
+        minHeight: '35vh',
+        color: '#0f172a',
+      }}>
+        <div style={{
+          maxWidth: '540px',
+          padding: '1.5rem',
+          borderRadius: '1rem',
+          background: '#fff7ed',
+          border: '1px solid #fed7aa',
+          boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
+        }}>
+          <div style={{ fontWeight: 800, fontSize: '1rem', marginBottom: '0.5rem', color: '#9a4d00' }}>
+            {title} failed to load
+          </div>
+          <div style={{ fontSize: '0.875rem', color: '#7c2d12' }}>
+            The app shell remained active, but this module could not render. The remaining modules continue to work normally.
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('projects');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [modalType, setModalType] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
+  const [isAssignTaskOpen, setIsAssignTaskOpen] = useState(false);
 
   const toast = (msg) => {
     setToastMsg(msg);
@@ -54,6 +93,11 @@ export default function App() {
       projects: () => setModalType('CREATE_PROJECT'),
       installation: () => setModalType('SCHEDULE_INSTALLATION'),
       service: () => setModalType('RAISE_TICKET'),
+      employees: () => {
+        setActiveTab('tasks');
+        setIsAssignTaskOpen(true);
+      },
+      tasks: () => setIsAssignTaskOpen(true),
     };
     if (map[activeTab]) map[activeTab]();
   };
@@ -83,7 +127,13 @@ export default function App() {
           setSidebarOpen={setSidebarOpen}
           onOpenTrace={() => m5Actions.handleOpenTrace(null, () => setModalType('TRACE_JOB'))}
           onOpenMedia={() => setModalType('PHOTO_PACK')}
-          onOpenTaskModal={() => setModalType('ASSIGN_TASK')}
+          onOpenTaskModal={() => {
+            if (activeTab === 'tasks' || activeTab === 'employees' || activeTab === 'mis') {
+              setIsAssignTaskOpen(true);
+            } else {
+              setModalType('ASSIGN_TASK');
+            }
+          }}
           onOpenAddModal={handleQuickAdd}
         />
 
@@ -164,6 +214,61 @@ export default function App() {
               onOpenCreateTicket={() => setModalType('RAISE_TICKET')}
               onOpenAssignTask={() => setModalType('ASSIGN_TASK')}
               onUpdateStatus={m5Actions.handleUpdateTicketStatus}
+            />
+          )}
+
+          {/* ==========================================
+              MODULE 7: WORKFORCE & MIS
+             ========================================== */}
+          {activeTab === 'employees' && (
+            <SafePage
+              component={EmployeesPayroll}
+              title="Employees & Payroll"
+              onOpenAssignTask={() => {
+                setActiveTab('tasks');
+                setIsAssignTaskOpen(true);
+              }}
+            />
+          )}
+
+          {activeTab === 'leaves' && (
+            <SafePage
+              component={LeaveManagement}
+              title="Leave Management"
+            />
+          )}
+
+          {activeTab === 'tasks' && (
+            <SafePage
+              component={TasksApprovals}
+              title="Tasks & Approvals"
+              onOpenPerformance={() => setActiveTab('mis')}
+              onAssignNewTask={() => setIsAssignTaskOpen(true)}
+              isAssignOpen={isAssignTaskOpen}
+              onCloseAssign={() => setIsAssignTaskOpen(false)}
+            />
+          )}
+
+          {activeTab === 'mis' && (
+            <SafePage
+              component={ManagementMIS}
+              title="Management MIS"
+              defaultTab="dashboard"
+            />
+          )}
+
+          {activeTab === 'trace' && (
+            <SafePage
+              component={ManagementMIS}
+              title="Executive Job Matrix"
+              defaultTab="matrix"
+            />
+          )}
+
+          {activeTab === 'media' && (
+            <SafePage
+              component={MediaLibrary}
+              title="Media Library"
             />
           )}
         </div>

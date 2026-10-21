@@ -167,6 +167,93 @@ export default function Sidebar({
           </button>
         </div>
 
+        {/* =========================================================
+            MODULE 07 SECTION: WORKFORCE & MIS
+           ========================================================= */}
+        <div className="vtag" style={{ marginTop: '16px' }}>
+          <div className="vtag-header">
+            <span className="vtag-pulse"></span>
+            <b>MODULE 07 · HR & WORKFORCE</b>
+          </div>
+          <span>HR · Payroll · Leaves · MIS & Tasks</span>
+        </div>
+
+        <div className="navgroup">
+          <div className="navlabel">WORKFORCE & MANAGEMENT</div>
+
+          <button
+            type="button"
+            className={`navbtn ${activeTab === 'employees' ? 'active' : ''}`}
+            onClick={() => handleNavClick('employees')}
+          >
+            <span className="navico">👥</span>
+            <div className="nav-text">
+              <b>Employees & Payroll</b>
+              <small>Staff · attendance · salary</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${activeTab === 'leaves' ? 'active' : ''}`}
+            onClick={() => handleNavClick('leaves')}
+          >
+            <span className="navico">📅</span>
+            <div className="nav-text">
+              <b>Leave Management</b>
+              <small>Approvals · balances · requests</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${activeTab === 'tasks' ? 'active' : ''}`}
+            onClick={() => handleNavClick('tasks')}
+          >
+            <span className="navico">✓</span>
+            <div className="nav-text">
+              <b>Tasks & Approvals</b>
+              <small>Workflow · audit · decisions</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${activeTab === 'mis' ? 'active' : ''}`}
+            onClick={() => handleNavClick('mis')}
+          >
+            <span className="navico">📊</span>
+            <div className="nav-text">
+              <b>Management MIS</b>
+              <small>Analytics · operational reports</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${activeTab === 'trace' ? 'active' : ''}`}
+            onClick={() => handleNavClick('trace')}
+          >
+            <span className="navico">💼</span>
+            <div className="nav-text">
+              <b>Job Matrix</b>
+              <small>End-to-end execution</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${activeTab === 'media' ? 'active' : ''}`}
+            onClick={() => handleNavClick('media')}
+          >
+            <span className="navico">📁</span>
+            <div className="nav-text">
+              <b>Media Library</b>
+              <small>Site photos · documents</small>
+            </div>
+          </button>
+        </div>
+
         <div className="sidebar-footer">
           <div className={`connection-pill ${apiOnline ? 'online' : 'offline'}`}>
             <span className="connection-dot"></span>
