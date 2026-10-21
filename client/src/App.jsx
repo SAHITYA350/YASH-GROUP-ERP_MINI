@@ -1,3 +1,4 @@
+// client/src/App.jsx
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
@@ -87,6 +88,9 @@ export default function App() {
         />
 
         <div className="content">
+          {/* ==========================================
+              MODULE 2: VENDOR, PROCUREMENT & INVENTORY
+             ========================================== */}
           {activeTab === 'vendors' && (
             <VendorsView
               vendors={m2State.vendors}
@@ -126,6 +130,9 @@ export default function App() {
             />
           )}
 
+          {/* ==========================================
+              MODULE 5: SITE & FIELD OPS
+             ========================================== */}
           {activeTab === 'projects' && (
             <ProjectsView
               projects={m5State.projects}
@@ -162,6 +169,7 @@ export default function App() {
         </div>
       </main>
 
+      {/* MODAL CONTAINERS (Separated by Feature Module) */}
       <Module5ModalContainer
         modalType={modalType}
         onClose={() => setModalType(null)}
