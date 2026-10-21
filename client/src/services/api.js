@@ -1,10 +1,34 @@
-/**
- * Centralized API service for Module 7
- */
+// client/src/services/api.js
+import axios from "axios";
 
-const API_BASE = '/api';
+export const API_BASE = '/api';
 
-// Ensure a valid token exists
+// ==========================================
+// AXIOS INSTANCE FOR DEFAULT EXPORT
+// ==========================================
+const axiosInstance = axios.create({
+  baseURL: "/api",
+  withCredentials: true,
+  headers: { "Content-Type": "application/json" },
+});
+
+axiosInstance.interceptors.request.use((config) => {
+  const csrf = document.cookie
+    .split("; ")
+    .find((cookie) => cookie.startsWith("yash_csrf="))
+    ?.split("=")[1];
+
+  if (csrf) config.headers["x-csrf-token"] = csrf;
+  return config;
+});
+
+export function getApiErrorMessage(error) {
+  return error.response?.data?.error?.message || error.message || "Request failed";
+}
+
+// ==========================================
+// MODULE 7 API CLIENT
+// ==========================================
 async function ensureAuthenticated(force = false) {
   let token = force ? null : localStorage.getItem('erp_token');
   if (!token) {
@@ -61,7 +85,6 @@ async function fetchJson(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    // If token expired, clear and re-authenticate once
     if (response.status === 401 && !options._retry && !endpoint.includes('/auth/login')) {
       localStorage.removeItem('erp_token');
       token = await ensureAuthenticated(true);
@@ -138,3 +161,83 @@ export const api = {
   getHealth: () => fetchJson('/health'),
 };
 
+// ==========================================
+// MODULE 2 & 5 ERP API
+// ==========================================
+async function request(url, options = {}) {
+  try {
+    const res = await fetch(`${API_BASE}${url}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    });
+
+    if (!res.ok) {
+      let errorMsg = `HTTP Error ${res.status}`;
+      try {
+        const errJson = await res.json();
+        if (errJson && errJson.message) errorMsg = errJson.message;
+      } catch (_) {}
+      throw new Error(errorMsg);
+    }
+
+    return await res.json();
+  } catch (err) {
+    console.error(`API request failed [${url}]:`, err.message);
+    throw err;
+  }
+}
+
+export const erpApi = {
+  // Health & Diagnostics
+  getHealth: () => request('/health'),
+
+  // Lookups (SalesOrder, Customer, Product, User)
+  getLookups: () => request('/lookups'),
+
+  // Module 5A: Projects
+  getProjects: (params = '') => request(`/projects${params ? `?${params}` : ''}`),
+  getProjectById: (id) => request(`/projects/${id}`),
+  createProject: (data) => request('/projects', { method: 'POST', body: JSON.stringify(data) }),
+  updateProjectStatus: (id, status) => request(`/projects/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  getProjectTrace: (id) => request(`/trace/${id}`),
+
+  // Module 5B: Installations
+  getInstallations: (params = '') => request(`/installations${params ? `?${params}` : ''}`),
+  createInstallation: (projectId, data) => request(`/projects/${projectId}/installations`, { method: 'POST', body: JSON.stringify(data) }),
+  updateInstallation: (id, data) => request(`/installations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Module 5C: Service Tickets
+  getTickets: () => request('/service-tickets'),
+  createTicket: (data) => request('/service-tickets', { method: 'POST', body: JSON.stringify(data) }),
+  updateTicket: (id, data) => request(`/service-tickets/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Module 2A: Vendors
+  getVendors: (params = '') => request(`/vendors${params ? `?${params}` : ''}`),
+  getVendorById: (id) => request(`/vendors/${id}`),
+  createVendor: (data) => request('/vendors', { method: 'POST', body: JSON.stringify(data) }),
+  updateVendor: (id, data) => request(`/vendors/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Module 2B: Procurement & PO
+  getPurchaseRequests: () => request('/purchase-requests'),
+  createPurchaseRequest: (data) => request('/purchase-requests', { method: 'POST', body: JSON.stringify(data) }),
+  getPurchaseOrders: (params = '') => request(`/purchase-orders${params ? `?${params}` : ''}`),
+  createPurchaseOrder: (data) => request('/purchase-orders', { method: 'POST', body: JSON.stringify(data) }),
+  updatePOStatus: (id, status) => request(`/purchase-orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+
+  // Module 2C: Inventory & Goods Receipt (GRN)
+  getInventory: (params = '') => request(`/inventory${params ? `?${params}` : ''}`),
+  getGoodsReceipts: () => request('/goods-receipts'),
+  createGoodsReceipt: (data) => request('/goods-receipts', { method: 'POST', body: JSON.stringify(data) }),
+  getInventoryMovements: (params = '') => request(`/inventory-movements${params ? `?${params}` : ''}`),
+  recordStockMovement: (data) => request('/inventory-movements', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Tasks (Cross-Module Integration)
+  getTasks: (params = '') => request(`/tasks${params ? `?${params}` : ''}`),
+  createTask: (data) => request('/tasks', { method: 'POST', body: JSON.stringify(data) }),
+  updateTaskStatus: (id, status) => request(`/tasks/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+};
+
+export default axiosInstance;
