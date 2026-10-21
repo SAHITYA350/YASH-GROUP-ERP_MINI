@@ -1,6 +1,6 @@
 // Leads module - CRM lead list, detail and follow-ups.
-const prisma = require("../../utils/prisma");
-const httpError = require("../../utils/httpError");
+import prisma from "../../utils/prisma.js";
+import httpError from "../../utils/httpError.js";
 
 const LEAD_SELECT = {
   id: true,
@@ -25,7 +25,7 @@ const LEAD_SELECT = {
   assignedTo: { select: { id: true, name: true } },
 };
 
-async function listLeads() {
+export async function listLeads() {
   const leads = await prisma.lead.findMany({
     select: LEAD_SELECT,
     orderBy: { createdAt: "desc" },
@@ -37,7 +37,7 @@ async function listLeads() {
   }));
 }
 
-async function getLead(id) {
+export async function getLead(id) {
   const lead = await prisma.lead.findUnique({
     where: { id: Number(id) },
     select: {
@@ -62,7 +62,7 @@ async function getLead(id) {
 }
 
 // Follow-ups = communications logged against this lead.
-async function getLeadFollowUps(id) {
+export async function getLeadFollowUps(id) {
   const lead = await prisma.lead.findUnique({ where: { id: Number(id) } });
   if (!lead) throw httpError(404, "Lead not found");
 
@@ -85,4 +85,4 @@ async function getLeadFollowUps(id) {
   return rows.map((c) => ({ ...c, by: c.user?.name ?? null, user: undefined }));
 }
 
-module.exports = { listLeads, getLead, getLeadFollowUps };
+export default { listLeads, getLead, getLeadFollowUps };

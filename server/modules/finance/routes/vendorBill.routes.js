@@ -1,7 +1,7 @@
 // Vendor bill routes (Payables & Expenses).
-const express = require("express");
-const { authenticate, authorize } = require("../../../utils/auth");
-const ctrl = require("../controllers/vendorBill.controller");
+import express from "express";
+import { authenticate, authorize } from "../../../utils/auth.js";
+import ctrl from "../controllers/vendorBill.controller.js";
 
 const router = express.Router();
 
@@ -17,4 +17,4 @@ router.post("/:id/approve", authenticate, authorize("finance", "approve"), ctrl.
 // 2-way match against a purchase order: ADMIN / FINANCE_MANAGER ("update")
 router.post("/:id/match", authenticate, authorize("finance", "update"), ctrl.match);
 
-module.exports = router;
+export default router;

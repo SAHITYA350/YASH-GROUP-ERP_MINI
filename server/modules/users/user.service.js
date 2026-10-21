@@ -1,6 +1,6 @@
 // Users module - list and inspect ERP users (read-only).
-const prisma = require("../../utils/prisma");
-const httpError = require("../../utils/httpError");
+import prisma from "../../utils/prisma.js";
+import httpError from "../../utils/httpError.js";
 
 const PUBLIC_FIELDS = {
   id: true,
@@ -17,14 +17,14 @@ const PUBLIC_FIELDS = {
   createdAt: true,
 };
 
-async function listUsers() {
+export async function listUsers() {
   return prisma.user.findMany({
     select: PUBLIC_FIELDS,
     orderBy: { name: "asc" },
   });
 }
 
-async function getUser(id) {
+export async function getUser(id) {
   const user = await prisma.user.findUnique({
     where: { id: Number(id) },
     select: {
@@ -42,4 +42,4 @@ async function getUser(id) {
   return user;
 }
 
-module.exports = { listUsers, getUser };
+export default { listUsers, getUser };

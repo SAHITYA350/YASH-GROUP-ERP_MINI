@@ -13,7 +13,7 @@
 //       server actually enforces.
 // ============================================================================
 
-const ROLE_PERMISSIONS = {
+export const ROLE_PERMISSIONS = {
   // Full control over every module (manage users, roles, all data).
   ADMIN: {
     modules: ["*"],
@@ -49,7 +49,7 @@ const ROLE_PERMISSIONS = {
  * @param {string} moduleName e.g. "finance", "crm", "sales"
  * @param {string} action     e.g. "read", "create", "update", "approve"
  */
-function canAccess(role, moduleName, action) {
+export function canAccess(role, moduleName, action) {
   const perm = ROLE_PERMISSIONS[role];
   if (!perm) return false;
 
@@ -60,4 +60,4 @@ function canAccess(role, moduleName, action) {
   return perm.actions.includes("*") || perm.actions.includes(action);
 }
 
-module.exports = { ROLE_PERMISSIONS, canAccess };
+export default { ROLE_PERMISSIONS, canAccess };

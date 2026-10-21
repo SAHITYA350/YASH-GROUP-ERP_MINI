@@ -1,15 +1,15 @@
 // Invoice table access - Prisma queries only, no business rules here.
 // Business rules live in services/invoice.service.js.
-const prisma = require("../../../utils/prisma");
+import prisma from "../../../utils/prisma.js";
 
-async function findAll() {
+export async function findAll() {
   return prisma.invoice.findMany({
     include: { customer: { select: { name: true } } },
     orderBy: { id: "desc" },
   });
 }
 
-async function findById(id) {
+export async function findById(id) {
   return prisma.invoice.findUnique({
     where: { id: Number(id) },
     include: {
@@ -21,7 +21,7 @@ async function findById(id) {
 }
 
 /** Lightweight rows for summaries / ageing (no relations). */
-async function findBalances() {
+export async function findBalances() {
   return prisma.invoice.findMany({
     select: {
       id: true, invoiceNo: true, customerId: true, status: true,
@@ -30,19 +30,19 @@ async function findBalances() {
   });
 }
 
-async function count() {
+export async function count() {
   return prisma.invoice.count();
 }
 
-async function create(data) {
+export async function create(data) {
   return prisma.invoice.create({ data });
 }
 
-async function updateBalance(id, paidAmount, status) {
+export async function updateBalance(id, paidAmount, status) {
   return prisma.invoice.update({
     where: { id },
     data: { paidAmount, status },
   });
 }
 
-module.exports = { findAll, findById, findBalances, count, create, updateBalance };
+export default { findAll, findById, findBalances, count, create, updateBalance };

@@ -1,14 +1,14 @@
 // Payment business rules: customer receipts (invoices) and supplier payments
 // (vendor bills). One place = balances can never disagree between screens.
-const invoiceRepo = require("../repositories/invoice.repository");
-const paymentRepo = require("../repositories/payment.repository");
-const billRepo = require("../repositories/vendorBill.repository");
-const calc = require("../utils/paymentCalculator");
-const { validateReceipt, validateBillPayment } = require("../validations/finance.validation");
-const httpError = require("../../../utils/httpError");
+import invoiceRepo from "../repositories/invoice.repository.js";
+import paymentRepo from "../repositories/payment.repository.js";
+import billRepo from "../repositories/vendorBill.repository.js";
+import calc from "../utils/paymentCalculator.js";
+import { validateReceipt, validateBillPayment } from "../validations/finance.validation.js";
+import httpError from "../../../utils/httpError.js";
 
 /** Record a customer receipt and update the invoice balance + status. */
-async function recordReceipt(invoiceId, body) {
+export async function recordReceipt(invoiceId, body) {
   const data = validateReceipt(body);
 
   const invoice = await invoiceRepo.findById(invoiceId);
@@ -40,7 +40,7 @@ async function recordReceipt(invoiceId, body) {
 }
 
 /** Record a supplier payment and update the bill balance + status. */
-async function recordBillPayment(billId, body) {
+export async function recordBillPayment(billId, body) {
   const data = validateBillPayment(body);
 
   const bill = await billRepo.findById(billId);
@@ -65,7 +65,7 @@ async function recordBillPayment(billId, body) {
 }
 
 /** All customer receipts, newest first. */
-async function listReceipts() {
+export async function listReceipts() {
   const rows = await paymentRepo.findAll();
   return rows.map((p) => ({
     id: p.id,
@@ -79,4 +79,4 @@ async function listReceipts() {
   }));
 }
 
-module.exports = { recordReceipt, recordBillPayment, listReceipts };
+export default { recordReceipt, recordBillPayment, listReceipts };

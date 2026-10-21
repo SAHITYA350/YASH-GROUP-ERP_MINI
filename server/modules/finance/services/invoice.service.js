@@ -1,13 +1,13 @@
 // Invoice business rules (Billing & Receivables - workflow A).
-const repo = require("../repositories/invoice.repository");
-const calc = require("../utils/paymentCalculator");
-const { suggestInvoiceNo } = require("../utils/invoiceNumber");
-const { validateCreateInvoice } = require("../validations/finance.validation");
-const httpError = require("../../../utils/httpError");
+import repo from "../repositories/invoice.repository.js";
+import calc from "../utils/paymentCalculator.js";
+import { suggestInvoiceNo } from "../utils/invoiceNumber.js";
+import { validateCreateInvoice } from "../validations/finance.validation.js";
+import httpError from "../../../utils/httpError.js";
 
 /** An invoice is overdue when its status says so, or the due date passed
  *  and money is still owed. Used by lists AND the dashboard. */
-function isOverdue(invoice, now = new Date()) {
+export function isOverdue(invoice, now = new Date()) {
   return (
     invoice.status === "OVERDUE" ||
     (Boolean(invoice.dueDate) &&
@@ -16,7 +16,7 @@ function isOverdue(invoice, now = new Date()) {
   );
 }
 
-async function listInvoices() {
+export async function listInvoices() {
   const invoices = await repo.findAll();
   return invoices.map((i) => ({
     id: i.id,
@@ -32,7 +32,7 @@ async function listInvoices() {
   }));
 }
 
-async function getInvoice(id) {
+export async function getInvoice(id) {
   const invoice = await repo.findById(id);
   if (!invoice) throw httpError(404, "Invoice not found");
   return {
@@ -45,7 +45,7 @@ async function getInvoice(id) {
 }
 
 /** Create a customer invoice. total = subtotal + GST. */
-async function createInvoice(body) {
+export async function createInvoice(body) {
   const data = validateCreateInvoice(body);
   const total = calc.round2(data.subtotal + data.taxAmount);
 
@@ -71,8 +71,8 @@ async function createInvoice(body) {
 }
 
 /** Suggest the next invoice number for the create form. */
-async function nextInvoiceNo() {
+export async function nextInvoiceNo() {
   return suggestInvoiceNo(await repo.count());
 }
 
-module.exports = { listInvoices, getInvoice, createInvoice, nextInvoiceNo, isOverdue };
+export default { listInvoices, getInvoice, createInvoice, nextInvoiceNo, isOverdue };

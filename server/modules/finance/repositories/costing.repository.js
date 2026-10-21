@@ -1,9 +1,9 @@
 // Costing data access - walks the existing chain
 // Project -> SalesOrder -> PurchaseRequest -> RFQ -> PurchaseOrder.
 // No extra tables: costs are classified by Vendor.category.
-const prisma = require("../../../utils/prisma");
+import prisma from "../../../utils/prisma.js";
 
-async function findProjectsWithOrders() {
+export async function findProjectsWithOrders() {
   return prisma.project.findMany({
     include: {
       customer: { select: { name: true } },
@@ -12,7 +12,7 @@ async function findProjectsWithOrders() {
   });
 }
 
-async function findProjectById(id) {
+export async function findProjectById(id) {
   return prisma.project.findUnique({
     where: { id: Number(id) },
     include: {
@@ -27,7 +27,7 @@ async function findProjectById(id) {
  * each with vendor category (used to split material / logistics / other)
  * and the PR + RFQ numbers for audit trails.
  */
-async function findCostOrders(salesOrderId) {
+export async function findCostOrders(salesOrderId) {
   const requests = await prisma.purchaseRequest.findMany({
     where: { salesOrderId },
     select: { id: true },
@@ -45,4 +45,4 @@ async function findCostOrders(salesOrderId) {
   });
 }
 
-module.exports = { findProjectsWithOrders, findProjectById, findCostOrders };
+export default { findProjectsWithOrders, findProjectById, findCostOrders };

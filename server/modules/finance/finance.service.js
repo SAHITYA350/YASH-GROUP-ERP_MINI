@@ -13,7 +13,7 @@
 //                                classified by Vendor.category.
 // ============================================================================
 
-const prisma = require("../../utils/prisma");
+import prisma from "../../utils/prisma.js";
 
 /** Convert a Prisma Decimal / number / string to a JS number. */
 function toNumber(value) {
@@ -455,7 +455,24 @@ async function getJobCostDetail(projectId) {
   };
 }
 
-module.exports = {
+export {
+  getReceivablesSummary,
+  listInvoices,
+  getInvoiceById,
+  createInvoice,
+  recordReceipt,
+  getPayablesSummary,
+  listVendorBills,
+  createVendorBill,
+  approveVendorBill,
+  matchBillToPO,
+  recordBillPayment,
+  listExpenses,
+  getJobCosting,
+  getJobCostDetail,
+};
+
+export default {
   getReceivablesSummary,
   listInvoices,
   getInvoiceById,

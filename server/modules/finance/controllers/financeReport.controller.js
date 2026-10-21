@@ -1,15 +1,15 @@
 // Finance report controller - dashboard + MIS management report.
-const service = require("../services/financeReport.service");
-const asyncHandler = require("../../../utils/asyncHandler");
+import service from "../services/financeReport.service.js";
+import asyncHandler from "../../../utils/asyncHandler.js";
 
 // GET /api/finance/dashboard
-const dashboard = asyncHandler(async (req, res) => {
+export const dashboard = asyncHandler(async (req, res) => {
   res.json(await service.getDashboard());
 });
 
 // GET /api/finance/reports/mis
-const mis = asyncHandler(async (req, res) => {
+export const mis = asyncHandler(async (req, res) => {
   res.json(await service.getMisReport());
 });
 
-module.exports = { dashboard, mis };
+export default { dashboard, mis };

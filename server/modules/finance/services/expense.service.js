@@ -1,11 +1,11 @@
 // Expense tracking (Payables - workflow B).
 // Expenses are vendor bills WITHOUT a purchase order, so they reuse the
 // VendorBill model instead of adding a new table.
-const repo = require("../repositories/vendorBill.repository");
-const billService = require("./vendorBill.service");
-const calc = require("../utils/paymentCalculator");
+import repo from "../repositories/vendorBill.repository.js";
+import billService from "./vendorBill.service.js";
+import calc from "../utils/paymentCalculator.js";
 
-async function listExpenses() {
+export async function listExpenses() {
   const bills = await repo.findExpenses();
   return bills.map((b) => ({
     id: b.id,
@@ -22,9 +22,9 @@ async function listExpenses() {
 }
 
 /** Enter a direct expense (transport, consumables, site services...). */
-async function createExpense(body) {
+export async function createExpense(body) {
   // purchaseOrderId is forced to null so the record lands in the expense list
   return billService.createBill({ ...body, purchaseOrderId: null });
 }
 
-module.exports = { listExpenses, createExpense };
+export default { listExpenses, createExpense };

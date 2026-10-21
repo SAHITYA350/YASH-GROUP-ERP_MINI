@@ -1,6 +1,6 @@
 // Services module - after-sales service tickets + technician schedule.
-const prisma = require("../../utils/prisma");
-const httpError = require("../../utils/httpError");
+import prisma from "../../utils/prisma.js";
+import httpError from "../../utils/httpError.js";
 
 const TICKET_SELECT = {
   id: true,
@@ -18,7 +18,7 @@ const TICKET_SELECT = {
   assignedTo: { select: { id: true, name: true } },
 };
 
-async function listTickets() {
+export async function listTickets() {
   const rows = await prisma.serviceTicket.findMany({
     select: TICKET_SELECT,
     orderBy: { reportedAt: "desc" },
@@ -33,7 +33,7 @@ async function listTickets() {
   }));
 }
 
-async function getTicket(id) {
+export async function getTicket(id) {
   const ticket = await prisma.serviceTicket.findUnique({
     where: { id: Number(id) },
     select: TICKET_SELECT,
@@ -43,7 +43,7 @@ async function getTicket(id) {
 }
 
 // Technician schedule: open/active tickets grouped by assignee.
-async function getSchedule() {
+export async function getSchedule() {
   const active = await prisma.serviceTicket.findMany({
     where: { status: { in: ["OPEN", "ASSIGNED", "IN_PROGRESS", "WAITING_PARTS"] } },
     select: TICKET_SELECT,
@@ -70,4 +70,4 @@ async function getSchedule() {
   }));
 }
 
-module.exports = { listTickets, getTicket, getSchedule };
+export default { listTickets, getTicket, getSchedule };

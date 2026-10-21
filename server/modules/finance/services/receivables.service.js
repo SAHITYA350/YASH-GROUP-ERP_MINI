@@ -1,13 +1,13 @@
 // Receivables: summary numbers + ageing buckets.
-const invoiceRepo = require("../repositories/invoice.repository");
-const paymentRepo = require("../repositories/payment.repository");
-const calc = require("../utils/paymentCalculator");
-const { isOverdue } = require("./invoice.service");
+import invoiceRepo from "../repositories/invoice.repository.js";
+import paymentRepo from "../repositories/payment.repository.js";
+import calc from "../utils/paymentCalculator.js";
+import { isOverdue } from "./invoice.service.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** invoiced / received / outstanding / overdue - all from the same rows. */
-async function getSummary() {
+export async function getSummary() {
   const invoices = await invoiceRepo.findBalances();
   const received = await paymentRepo.sumReceived();
   const now = new Date();
@@ -31,7 +31,7 @@ async function getSummary() {
 }
 
 /** Receivables ageing: current, 1-30, 31-60, 60+ days past due. */
-async function getAgeing() {
+export async function getAgeing() {
   const invoices = await invoiceRepo.findBalances();
   const now = new Date();
   const buckets = { current: 0, days1to30: 0, days31to60: 0, over60: 0 };
@@ -63,4 +63,4 @@ async function getAgeing() {
   return { buckets, rows };
 }
 
-module.exports = { getSummary, getAgeing };
+export default { getSummary, getAgeing };

@@ -4,9 +4,9 @@
 //   revenue = invoices issued against the job's sales order
 //   costs   = purchase orders reached via PR -> RFQ of the same sales order,
 //             classified by Vendor.category
-const repo = require("../repositories/costing.repository");
-const calc = require("../utils/paymentCalculator");
-const httpError = require("../../../utils/httpError");
+import repo from "../repositories/costing.repository.js";
+import calc from "../utils/paymentCalculator.js";
+import httpError from "../../../utils/httpError.js";
 
 /** Map a vendor category onto a cost bucket. */
 function classify(vendorCategory) {
@@ -53,7 +53,7 @@ async function costingFor(project) {
 }
 
 /** Costing row for every job (used by the dashboard and Costing page). */
-async function listJobCosting() {
+export async function listJobCosting() {
   const projects = await repo.findProjectsWithOrders();
   const rows = [];
   for (const p of projects) {
@@ -77,7 +77,7 @@ async function listJobCosting() {
 }
 
 /** Full cost breakdown of one job, including the PR / RFQ / PO audit trail. */
-async function getJobCostDetail(projectId) {
+export async function getJobCostDetail(projectId) {
   const project = await repo.findProjectById(projectId);
   if (!project) throw httpError(404, "Project not found");
 
@@ -106,4 +106,4 @@ async function getJobCostDetail(projectId) {
   };
 }
 
-module.exports = { listJobCosting, getJobCostDetail };
+export default { listJobCosting, getJobCostDetail };

@@ -14,10 +14,14 @@
 //      open it.
 // ============================================================================
 
-require("dotenv").config();
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
 
-const express = require("express");
-const cors = require("cors");
+import financeRoutes from "./modules/finance/finance.routes.js";
+import userRoutes from "./modules/users/user.routes.js";
+import leadRoutes from "./modules/leads/lead.routes.js";
+import serviceRoutes from "./modules/services/service.routes.js";
 
 const app = express();
 
@@ -34,10 +38,10 @@ app.get("/", (req, res) => {
 });
 
 // ---- Modules (add new ones here) ----
-app.use("/api/finance", require("./modules/finance/finance.routes"));
-app.use("/api/users", require("./modules/users/user.routes"));
-app.use("/api/leads", require("./modules/leads/lead.routes"));
-app.use("/api/services", require("./modules/services/service.routes"));
+app.use("/api/finance", financeRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/leads", leadRoutes);
+app.use("/api/services", serviceRoutes);
 
 // ---- 404 ----
 app.use((req, res) => {

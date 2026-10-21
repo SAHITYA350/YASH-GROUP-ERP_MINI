@@ -1,7 +1,7 @@
 // Costing routes - job revenue, costs, profit, margin.
-const express = require("express");
-const { authenticate, authorize } = require("../../../utils/auth");
-const ctrl = require("../controllers/costing.controller");
+import express from "express";
+import { authenticate, authorize } from "../../../utils/auth.js";
+import ctrl from "../controllers/costing.controller.js";
 
 const router = express.Router();
 
@@ -11,4 +11,4 @@ router.get("/", authenticate, authorize("finance", "read"), ctrl.list);
 // GET /api/finance/jobs/:id/costs -> full breakdown incl. PR/RFQ/PO trail
 router.get("/:id/costs", authenticate, authorize("finance", "read"), ctrl.detail);
 
-module.exports = router;
+export default router;

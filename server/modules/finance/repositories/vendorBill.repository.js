@@ -1,7 +1,7 @@
 // Vendor bill table access - Prisma queries only.
-const prisma = require("../../../utils/prisma");
+import prisma from "../../../utils/prisma.js";
 
-async function findAll() {
+export async function findAll() {
   return prisma.vendorBill.findMany({
     include: {
       vendor: { select: { name: true, category: true } },
@@ -12,7 +12,7 @@ async function findAll() {
 }
 
 /** Expense bills = vendor bills WITHOUT a purchase order. */
-async function findExpenses() {
+export async function findExpenses() {
   return prisma.vendorBill.findMany({
     where: { purchaseOrderId: null },
     include: { vendor: { select: { name: true, category: true } } },
@@ -20,7 +20,7 @@ async function findExpenses() {
   });
 }
 
-async function findById(id) {
+export async function findById(id) {
   return prisma.vendorBill.findUnique({
     where: { id: Number(id) },
     include: {
@@ -30,18 +30,23 @@ async function findById(id) {
   });
 }
 
-async function findPurchaseOrderByNumber(poNumber) {
+export async function findPurchaseOrderByNumber(poNumber) {
   return prisma.purchaseOrder.findUnique({ where: { poNumber } });
 }
 
-async function create(data) {
+export async function create(data) {
   return prisma.vendorBill.create({ data });
 }
 
-async function update(id, data) {
+export async function update(id, data) {
   return prisma.vendorBill.update({ where: { id }, data });
 }
 
-module.exports = {
-  findAll, findExpenses, findById, findPurchaseOrderByNumber, create, update,
+export default {
+  findAll,
+  findExpenses,
+  findById,
+  findPurchaseOrderByNumber,
+  create,
+  update,
 };

@@ -1,7 +1,7 @@
 // Request validation for the finance module.
 // Every function throws httpError(400, ...) with a clear message so the
 // controllers stay tiny and every endpoint answers errors the same way.
-const httpError = require("../../../utils/httpError");
+import httpError from "../../../utils/httpError.js";
 
 const PAYMENT_METHODS = ["CASH", "BANK_TRANSFER", "UPI", "CHEQUE", "CREDIT", "OTHER"];
 
@@ -39,7 +39,7 @@ function optionalDate(value, name) {
 }
 
 /** POST /api/finance/invoices */
-function validateCreateInvoice(body = {}) {
+export function validateCreateInvoice(body = {}) {
   requiredFields(body, ["invoiceNo", "customerId", "salesOrderId"]);
   return {
     invoiceNo: String(body.invoiceNo).trim(),
@@ -54,7 +54,7 @@ function validateCreateInvoice(body = {}) {
 }
 
 /** POST /api/finance/invoices/:id/receipts */
-function validateReceipt(body = {}) {
+export function validateReceipt(body = {}) {
   positiveAmount(body.amount, "amount");
   const method = body.method || "BANK_TRANSFER";
   if (!PAYMENT_METHODS.includes(method)) {
@@ -71,7 +71,7 @@ function validateReceipt(body = {}) {
 }
 
 /** POST /api/finance/vendor-bills and POST /api/finance/expenses */
-function validateCreateVendorBill(body = {}) {
+export function validateCreateVendorBill(body = {}) {
   requiredFields(body, ["billNo", "vendorId"]);
   return {
     billNo: String(body.billNo).trim(),
@@ -85,18 +85,18 @@ function validateCreateVendorBill(body = {}) {
 }
 
 /** POST /api/finance/vendor-bills/:id/payments */
-function validateBillPayment(body = {}) {
+export function validateBillPayment(body = {}) {
   positiveAmount(body.amount, "amount");
   return { amount: Number(body.amount) };
 }
 
 /** POST /api/finance/vendor-bills/:id/match */
-function validateMatch(body = {}) {
+export function validateMatch(body = {}) {
   requiredFields(body, ["poNumber"]);
   return { poNumber: String(body.poNumber).trim() };
 }
 
-module.exports = {
+export default {
   validateCreateInvoice,
   validateReceipt,
   validateCreateVendorBill,

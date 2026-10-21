@@ -1,8 +1,8 @@
 // Users routes - mounted at /api/users.
-const express = require("express");
-const { authenticate, authorize } = require("../../utils/auth");
-const asyncHandler = require("../../utils/asyncHandler");
-const service = require("./user.service");
+import express from "express";
+import { authenticate, authorize } from "../../utils/auth.js";
+import asyncHandler from "../../utils/asyncHandler.js";
+import service from "./user.service.js";
 
 const router = express.Router();
 
@@ -26,4 +26,4 @@ router.get(
   })
 );
 
-module.exports = router;
+export default router;

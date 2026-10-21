@@ -1,14 +1,14 @@
 // Vendor bill business rules (Payables - workflow B):
 // list, enter, approve and 2-way match against a purchase order.
-const repo = require("../repositories/vendorBill.repository");
-const calc = require("../utils/paymentCalculator");
-const {
+import repo from "../repositories/vendorBill.repository.js";
+import calc from "../utils/paymentCalculator.js";
+import {
   validateCreateVendorBill,
   validateMatch,
-} = require("../validations/finance.validation");
-const httpError = require("../../../utils/httpError");
+} from "../validations/finance.validation.js";
+import httpError from "../../../utils/httpError.js";
 
-async function listBills() {
+export async function listBills() {
   const bills = await repo.findAll();
   return bills.map((b) => ({
     id: b.id,
@@ -30,7 +30,7 @@ async function listBills() {
   }));
 }
 
-async function getBill(id) {
+export async function getBill(id) {
   const bill = await repo.findById(id);
   if (!bill) throw httpError(404, "Vendor bill not found");
   return {
@@ -42,7 +42,7 @@ async function getBill(id) {
 }
 
 /** Enter a supplier bill - starts as SUBMITTED, waiting for approval. */
-async function createBill(body) {
+export async function createBill(body) {
   const data = validateCreateVendorBill(body);
   const total = calc.round2(data.subtotal + data.taxAmount);
 
@@ -67,7 +67,7 @@ async function createBill(body) {
 }
 
 /** Approval is a separate permission ("approve") - only ADMIN / FINANCE_MANAGER. */
-async function approveBill(id) {
+export async function approveBill(id) {
   const bill = await repo.findById(id);
   if (!bill) throw httpError(404, "Vendor bill not found");
   if (!["DRAFT", "SUBMITTED", "MATCHED"].includes(bill.status)) {
@@ -77,7 +77,7 @@ async function approveBill(id) {
 }
 
 /** 2-way match: the bill total must equal the purchase order total. */
-async function matchBillToPO(id, body) {
+export async function matchBillToPO(id, body) {
   const { poNumber } = validateMatch(body);
 
   const bill = await repo.findById(id);
@@ -96,4 +96,4 @@ async function matchBillToPO(id, body) {
   return repo.update(bill.id, { purchaseOrderId: po.id, status: "MATCHED" });
 }
 
-module.exports = { listBills, getBill, createBill, approveBill, matchBillToPO };
+export default { listBills, getBill, createBill, approveBill, matchBillToPO };

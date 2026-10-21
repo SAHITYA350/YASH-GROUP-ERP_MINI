@@ -1,13 +1,13 @@
 // Finance dashboard + management reports (MIS).
 // Every block reuses the same services the individual pages use, so the
 // dashboard can never disagree with the invoice / bill / costing screens.
-const receivables = require("./receivables.service");
-const vendorBill = require("./vendorBill.service");
-const costing = require("./costing.service");
-const calc = require("../utils/paymentCalculator");
+import receivables from "./receivables.service.js";
+import vendorBill from "./vendorBill.service.js";
+import costing from "./costing.service.js";
+import calc from "../utils/paymentCalculator.js";
 
 /** Payables summary derived from the same bill list the UI shows. */
-async function getPayablesSummary() {
+export async function getPayablesSummary() {
   const bills = await vendorBill.listBills();
   const billed = bills.reduce((s, b) => s + b.total, 0);
   const paid = bills.reduce((s, b) => s + b.paidAmount, 0);
@@ -25,7 +25,7 @@ async function getPayablesSummary() {
 }
 
 /** GET /api/finance/dashboard - one call, three blocks. */
-async function getDashboard() {
+export async function getDashboard() {
   const [recv, payables, jobs] = await Promise.all([
     receivables.getSummary(),
     getPayablesSummary(),
@@ -35,7 +35,7 @@ async function getDashboard() {
 }
 
 /** GET /api/finance/reports/mis - company roll-up + per-job profit & margin. */
-async function getMisReport() {
+export async function getMisReport() {
   const [recv, payables, jobs] = await Promise.all([
     receivables.getSummary(),
     getPayablesSummary(),
@@ -61,4 +61,4 @@ async function getMisReport() {
   };
 }
 
-module.exports = { getDashboard, getMisReport, getPayablesSummary };
+export default { getDashboard, getMisReport, getPayablesSummary };

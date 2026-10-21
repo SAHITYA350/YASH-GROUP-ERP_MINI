@@ -1,4 +1,3 @@
-
 # How to add a new module (copy this folder)
 
 Adding a new ERP module (e.g. Inventory, HR, Production) takes 4 steps.
@@ -12,14 +11,14 @@ modules/_template  ->  modules/inventory
 ## 2. Create two files inside it
 
 **`inventory.service.js`** - all database queries and business logic
-(imports the shared client with `require("../../utils/prisma")`).
+(imports the shared client with `import prisma from "../../utils/prisma.js"`).
 
 **`inventory.routes.js`** - HTTP endpoints, each guarded by auth:
 
 ```js
-const express = require("express");
-const { authenticate, authorize } = require("../../utils/auth");
-const service = require("./inventory.service");
+import express from "express";
+import { authenticate, authorize } from "../../utils/auth.js";
+import service from "./inventory.service.js";
 
 const router = express.Router();
 
@@ -33,13 +32,14 @@ router.post("/movements", authenticate, authorize("inventory", "create"), async 
   res.status(201).json(await service.recordMovement(req.body));
 });
 
-module.exports = router;
+export default router;
 ```
 
-## 3. Mount it in `index.js` (one line)
+## 3. Mount it in `index.js` (two lines)
 
 ```js
-app.use("/api/inventory", require("./modules/inventory/inventory.routes"));
+import inventoryRoutes from "./modules/inventory/inventory.routes.js";
+app.use("/api/inventory", inventoryRoutes);
 ```
 
 ## 4. Give roles access in `config/permissions.js`

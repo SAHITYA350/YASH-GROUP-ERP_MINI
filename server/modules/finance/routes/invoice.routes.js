@@ -1,7 +1,7 @@
 // Invoice routes (Billing & Receivables). Mounted under /api/finance.
-const express = require("express");
-const { authenticate, authorize } = require("../../../utils/auth");
-const ctrl = require("../controllers/invoice.controller");
+import express from "express";
+import { authenticate, authorize } from "../../../utils/auth.js";
+import ctrl from "../controllers/invoice.controller.js";
 
 const router = express.Router();
 
@@ -13,4 +13,4 @@ router.get("/:id", authenticate, authorize("finance", "read"), ctrl.getById);
 // Create invoice: ADMIN / FINANCE_MANAGER / BANK_OFFICE_EXECUTIVE
 router.post("/", authenticate, authorize("finance", "create"), ctrl.create);
 
-module.exports = router;
+export default router;
