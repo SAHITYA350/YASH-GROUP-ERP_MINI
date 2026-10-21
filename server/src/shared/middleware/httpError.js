@@ -20,6 +20,12 @@ export const errorStatus = (error, fallback = 400) => {
   if (["P2002", "P2003"].includes(code)) return 409;
   if (prismaInputCodes.has(code)) return 400;
   if (
+    /must be|required|invalid|cannot|valid|greater than/i.test(
+      error?.message || "",
+    )
+  )
+    return 400;
+  if (
     ["P2021", "P2022", "P2024"].includes(code) ||
     /^P10(?:0[0-9]|1[0-7])$/.test(code)
   )
