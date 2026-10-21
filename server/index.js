@@ -1,32 +1,41 @@
-import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import productionRoutes from "./src/modules/production/routes/production.routes.js";
+import qualityRoutes from "./src/modules/quality/routes/quality.routes.js";
+import {
+  errorHandler,
+  notFoundHandler,
+} from "./src/shared/middleware/errorHandler.js";
+import { inspectSchemaReadiness } from "./src/shared/database/schemaReadiness.js";
+import prisma from "./src/shared/database/prisma.js";
+
+dotenv.config({});
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ─── Middleware ───────────────────────────────
-app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Routes ──────────────────────────────────
-// Mount the role-guarded module routers after trusted authentication sets req.user.
+// Production & Quality Module
+app.use("/api/production", productionRoutes);
+app.use("/api/quality", qualityRoutes);
 
 // ─── Health Check ────────────────────────────
 app.get("/api/health", (req, res) => {
   res.json({
     status: "OK",
-    message: "YASH-GROUP ERP — Production & Quality API (module routes disabled pending authentication)",
+    message: "YASH-GROUP ERP — Production & Quality API",
     timestamp: new Date().toISOString(),
-    moduleAccess: {
-      enabled: false,
-      message: "Production and quality routes are disabled until trusted authentication is connected.",
-    },
     endpoints: {
       production: {
         dashboard: "GET  /api/production/dashboard",
@@ -76,25 +85,29 @@ app.get("/api/health", (req, res) => {
 
 app.get("/api/ready", async (_req, res) => {
   try {
-    const { default: prisma } = await import("./src/Config/prisma.js");
-    await prisma.$queryRaw`SELECT 1`;
-    return res.status(200).json({ status: "READY", database: "connected", timestamp: new Date().toISOString() });
+    const readiness = await inspectSchemaReadiness(prisma);
+    return res.status(readiness.ready ? 200 : 503).json({
+      success: readiness.ready,
+      status: readiness.ready ? "READY" : "NOT_READY",
+      message: readiness.ready
+        ? "Database schema and migrations are ready."
+        : "Database schema or migration history requires reconciliation.",
+      ...readiness,
+      timestamp: new Date().toISOString(),
+    });
   } catch (err) {
-    return res.status(503).json({ status: "NOT_READY", database: "unavailable", message: "Database connection failed." });
+    console.error("[READINESS_CHECK_FAILED]", err.message);
+    return res.status(503).json({
+      success: false,
+      status: "NOT_READY",
+      database: "unavailable",
+      message: "Unable to validate database schema and migration readiness.",
+    });
   }
 });
 
-// ─── 404 Handler ─────────────────────────────
-app.use((req, res) => {
-  res.status(404).json({ success: false, message: `Route ${req.method} ${req.path} not found.` });
-});
-
-// ─── Global Error Handler ─────────────────────
-app.use((err, req, res, _next) => {
-  console.error("[ERROR]", err.stack || err.message);
-  const status = err.status || (err.type === "entity.parse.failed" ? 400 : 500);
-  res.status(status).json({ success: false, message: status >= 500 ? "Internal server error." : err.message });
-});
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 // ─── Start Server ─────────────────────────────
 app.listen(PORT, () => {

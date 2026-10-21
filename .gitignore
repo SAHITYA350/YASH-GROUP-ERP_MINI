@@ -149,3 +149,5 @@ vite.config.ts.timestamp-*
 .turbo
 #festure list file
 server/feature_list
+
+server/prisma

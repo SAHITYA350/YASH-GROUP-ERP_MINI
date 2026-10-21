@@ -1,6 +1,30 @@
-* { box-sizing: border-box; }
-html { min-width: 320px; min-height: 100%; background: #f7f8fc; }
-body { min-width: 320px; min-height: 100vh; margin: 0; }
-body, button, input, select, textarea { font-family: 'DM Sans', Arial, sans-serif; }
-button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid #78a0f3; outline-offset: 2px; }
-#root { min-height: 100vh; }
+* {
+  box-sizing: border-box;
+}
+html {
+  min-width: 0;
+  min-height: 100%;
+  background: #2d2e32;
+}
+body {
+  min-width: 0;
+  min-height: 100vh;
+  margin: 0;
+}
+body,
+button,
+input,
+select,
+textarea {
+  font-family: "DM Sans", Arial, sans-serif;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #78a0f3;
+  outline-offset: 2px;
+}
+#root {
+  min-height: 100vh;
+}

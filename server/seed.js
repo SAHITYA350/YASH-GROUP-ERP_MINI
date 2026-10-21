@@ -1,5 +1,5 @@
 import "dotenv/config";
-import prisma from "./src/Config/prisma.js";
+import prisma from "./src/shared/database/prisma.js";
 
 const dateOffset = (days) => {
   const date = new Date();
@@ -55,7 +55,11 @@ async function seedDatabase() {
       const customers = await Promise.all([
         tx.customer.upsert({
           where: { code: "DEMO-CUST-001" },
-          update: { name: "Acme Components", city: "Pune", state: "Maharashtra" },
+          update: {
+            name: "Acme Components",
+            city: "Pune",
+            state: "Maharashtra",
+          },
           create: {
             code: "DEMO-CUST-001",
             name: "Acme Components",
@@ -67,7 +71,11 @@ async function seedDatabase() {
         }),
         tx.customer.upsert({
           where: { code: "DEMO-CUST-002" },
-          update: { name: "Orion Industrial Systems", city: "Nashik", state: "Maharashtra" },
+          update: {
+            name: "Orion Industrial Systems",
+            city: "Nashik",
+            state: "Maharashtra",
+          },
           create: {
             code: "DEMO-CUST-002",
             name: "Orion Industrial Systems",
@@ -95,11 +103,17 @@ async function seedDatabase() {
       const products = await Promise.all([
         tx.product.upsert({
           where: { sku: "DEMO-PH-001" },
-          update: { name: "Industrial Plastic Housing", categoryId: categories[0].id, isManufactured: true, isActive: true },
+          update: {
+            name: "Industrial Plastic Housing",
+            categoryId: categories[0].id,
+            isManufactured: true,
+            isActive: true,
+          },
           create: {
             sku: "DEMO-PH-001",
             name: "Industrial Plastic Housing",
-            description: "Demo finished product for production and quality workflows.",
+            description:
+              "Demo finished product for production and quality workflows.",
             unitOfMeasure: "PCS",
             listPrice: 425,
             isManufactured: true,
@@ -108,11 +122,17 @@ async function seedDatabase() {
         }),
         tx.product.upsert({
           where: { sku: "DEMO-CVR-002" },
-          update: { name: "Electrical Enclosure Cover", categoryId: categories[0].id, isManufactured: true, isActive: true },
+          update: {
+            name: "Electrical Enclosure Cover",
+            categoryId: categories[0].id,
+            isManufactured: true,
+            isActive: true,
+          },
           create: {
             sku: "DEMO-CVR-002",
             name: "Electrical Enclosure Cover",
-            description: "Demo finished product for production and quality workflows.",
+            description:
+              "Demo finished product for production and quality workflows.",
             unitOfMeasure: "PCS",
             listPrice: 310,
             isManufactured: true,
@@ -121,11 +141,17 @@ async function seedDatabase() {
         }),
         tx.product.upsert({
           where: { sku: "DEMO-RESIN-001" },
-          update: { name: "Moulding Resin", categoryId: categories[1].id, isManufactured: false, isActive: true },
+          update: {
+            name: "Moulding Resin",
+            categoryId: categories[1].id,
+            isManufactured: false,
+            isActive: true,
+          },
           create: {
             sku: "DEMO-RESIN-001",
             name: "Moulding Resin",
-            description: "Demo raw material used in the housing bill of materials.",
+            description:
+              "Demo raw material used in the housing bill of materials.",
             unitOfMeasure: "KG",
             listPrice: 145,
             isManufactured: false,
@@ -137,7 +163,12 @@ async function seedDatabase() {
       await Promise.all([
         tx.inventory.upsert({
           where: { productId: products[0].id },
-          update: { physicalQuantity: 180, reservedQuantity: 20, reorderLevel: 50, unitCost: 220 },
+          update: {
+            physicalQuantity: 180,
+            reservedQuantity: 20,
+            reorderLevel: 50,
+            unitCost: 220,
+          },
           create: {
             productId: products[0].id,
             warehouseLocation: "Finished Goods",
@@ -149,7 +180,12 @@ async function seedDatabase() {
         }),
         tx.inventory.upsert({
           where: { productId: products[1].id },
-          update: { physicalQuantity: 95, reservedQuantity: 10, reorderLevel: 30, unitCost: 165 },
+          update: {
+            physicalQuantity: 95,
+            reservedQuantity: 10,
+            reorderLevel: 30,
+            unitCost: 165,
+          },
           create: {
             productId: products[1].id,
             warehouseLocation: "Finished Goods",
@@ -161,7 +197,12 @@ async function seedDatabase() {
         }),
         tx.inventory.upsert({
           where: { productId: products[2].id },
-          update: { physicalQuantity: 1200, reservedQuantity: 250, reorderLevel: 300, unitCost: 110 },
+          update: {
+            physicalQuantity: 1200,
+            reservedQuantity: 250,
+            reorderLevel: 300,
+            unitCost: 110,
+          },
           create: {
             productId: products[2].id,
             warehouseLocation: "Raw Materials",
@@ -174,7 +215,9 @@ async function seedDatabase() {
       ]);
 
       const bom = await tx.bOMRevision.upsert({
-        where: { productId_revision: { productId: products[0].id, revision: "DEMO-A" } },
+        where: {
+          productId_revision: { productId: products[0].id, revision: "DEMO-A" },
+        },
         update: {
           status: "RELEASED",
           materialCost: 110,
@@ -195,9 +238,19 @@ async function seedDatabase() {
       });
 
       await tx.bOMItem.upsert({
-        where: { bomRevisionId_componentProductId: { bomRevisionId: bom.id, componentProductId: products[2].id } },
+        where: {
+          bomRevisionId_componentProductId: {
+            bomRevisionId: bom.id,
+            componentProductId: products[2].id,
+          },
+        },
         update: { quantity: 0.8, scrapPercent: 2 },
-        create: { bomRevisionId: bom.id, componentProductId: products[2].id, quantity: 0.8, scrapPercent: 2 },
+        create: {
+          bomRevisionId: bom.id,
+          componentProductId: products[2].id,
+          quantity: 0.8,
+          scrapPercent: 2,
+        },
       });
 
       for (const [sequence, name, workCenter, standardMinutes] of [
@@ -206,16 +259,48 @@ async function seedDatabase() {
         [3, "Packing", "Packing", 1],
       ]) {
         await tx.bOMOperation.upsert({
-          where: { bomRevisionId_sequence: { bomRevisionId: bom.id, sequence } },
+          where: {
+            bomRevisionId_sequence: { bomRevisionId: bom.id, sequence },
+          },
           update: { name, workCenter, standardMinutes },
-          create: { bomRevisionId: bom.id, sequence, name, workCenter, standardMinutes },
+          create: {
+            bomRevisionId: bom.id,
+            sequence,
+            name,
+            workCenter,
+            standardMinutes,
+          },
         });
       }
 
       const orderSpecs = [
-        { number: "DEMO-SO-001", customer: customers[0], product: products[0], quantity: 1000, price: 425, status: "PROCESSING", daysUntilDelivery: 8 },
-        { number: "DEMO-SO-002", customer: customers[1], product: products[0], quantity: 500, price: 425, status: "PROCESSING", daysUntilDelivery: 14 },
-        { number: "DEMO-SO-003", customer: customers[0], product: products[1], quantity: 300, price: 310, status: "CONFIRMED", daysUntilDelivery: 21 },
+        {
+          number: "DEMO-SO-001",
+          customer: customers[0],
+          product: products[0],
+          quantity: 1000,
+          price: 425,
+          status: "PROCESSING",
+          daysUntilDelivery: 8,
+        },
+        {
+          number: "DEMO-SO-002",
+          customer: customers[1],
+          product: products[0],
+          quantity: 500,
+          price: 425,
+          status: "PROCESSING",
+          daysUntilDelivery: 14,
+        },
+        {
+          number: "DEMO-SO-003",
+          customer: customers[0],
+          product: products[1],
+          quantity: 300,
+          price: 310,
+          status: "CONFIRMED",
+          daysUntilDelivery: 21,
+        },
       ];
       const salesOrders = [];
       for (const spec of orderSpecs) {
@@ -250,7 +335,12 @@ async function seedDatabase() {
           },
         });
         await tx.salesOrderItem.upsert({
-          where: { salesOrderId_productId: { salesOrderId: salesOrder.id, productId: spec.product.id } },
+          where: {
+            salesOrderId_productId: {
+              salesOrderId: salesOrder.id,
+              productId: spec.product.id,
+            },
+          },
           update: {
             productSkuSnapshot: spec.product.sku,
             productNameSnapshot: spec.product.name,
@@ -312,7 +402,13 @@ async function seedDatabase() {
           produced: 200,
           startOffset: -3,
           endOffset: 5,
-          inspection: { number: "DEMO-QI-001", status: "HOLD", inspected: 200, accepted: 190, rejected: 10 },
+          inspection: {
+            number: "DEMO-QI-001",
+            status: "HOLD",
+            inspected: 200,
+            accepted: 190,
+            rejected: 10,
+          },
         },
         {
           number: "DEMO-WO-002",
@@ -324,7 +420,13 @@ async function seedDatabase() {
           produced: 100,
           startOffset: -1,
           endOffset: 9,
-          inspection: { number: "DEMO-QI-002", status: "PENDING", inspected: 0, accepted: 0, rejected: 0 },
+          inspection: {
+            number: "DEMO-QI-002",
+            status: "PENDING",
+            inspected: 0,
+            accepted: 0,
+            rejected: 0,
+          },
         },
         {
           number: "DEMO-WO-003",
@@ -344,7 +446,8 @@ async function seedDatabase() {
           where: { workOrderNo: spec.number },
           update: {
             salesOrderId: spec.salesOrder.id,
-            bomRevisionId: spec.salesOrder.id === salesOrders[2].id ? null : bom.id,
+            bomRevisionId:
+              spec.salesOrder.id === salesOrders[2].id ? null : bom.id,
             createdById: productionManager.id,
             status: spec.status,
             planApprovalStatus: "APPROVED",
@@ -363,7 +466,8 @@ async function seedDatabase() {
           create: {
             workOrderNo: spec.number,
             salesOrderId: spec.salesOrder.id,
-            bomRevisionId: spec.salesOrder.id === salesOrders[2].id ? null : bom.id,
+            bomRevisionId:
+              spec.salesOrder.id === salesOrders[2].id ? null : bom.id,
             createdById: productionManager.id,
             status: spec.status,
             planApprovalStatus: "APPROVED",
@@ -385,7 +489,12 @@ async function seedDatabase() {
 
         if (workOrder.bomRevisionId) {
           await tx.workOrderItem.upsert({
-            where: { workOrderId_productId: { workOrderId: workOrder.id, productId: products[2].id } },
+            where: {
+              workOrderId_productId: {
+                workOrderId: workOrder.id,
+                productId: products[2].id,
+              },
+            },
             update: {
               plannedQuantity: spec.quantity * 0.8 * 1.02,
               issuedQuantity: spec.produced * 0.8,
@@ -413,7 +522,10 @@ async function seedDatabase() {
           startedAt: spec.produced > 0 ? dateOffset(-2) : null,
         };
         const operation = existingOperation
-          ? await tx.operationLog.update({ where: { id: existingOperation.id }, data: operationData })
+          ? await tx.operationLog.update({
+              where: { id: existingOperation.id },
+              data: operationData,
+            })
           : await tx.operationLog.create({
               data: {
                 workOrderId: workOrder.id,
@@ -431,11 +543,21 @@ async function seedDatabase() {
               inspectedQuantity: spec.inspection.inspected,
               acceptedQuantity: spec.inspection.accepted,
               rejectedQuantity: spec.inspection.rejected,
-              measurements: spec.inspection.status === "PENDING"
-                ? { inspection: "Awaiting inspection", sampleSource: "Demo data" }
-                : { visualCheck: spec.inspection.rejected === 0 ? "PASS" : "FAIL", sampleSource: "Demo data" },
-              evidenceNotes: "Demo inspection record for the quality dashboard.",
-              inspectedAt: spec.inspection.status === "PENDING" ? null : dateOffset(-1),
+              measurements:
+                spec.inspection.status === "PENDING"
+                  ? {
+                      inspection: "Awaiting inspection",
+                      sampleSource: "Demo data",
+                    }
+                  : {
+                      visualCheck:
+                        spec.inspection.rejected === 0 ? "PASS" : "FAIL",
+                      sampleSource: "Demo data",
+                    },
+              evidenceNotes:
+                "Demo inspection record for the quality dashboard.",
+              inspectedAt:
+                spec.inspection.status === "PENDING" ? null : dateOffset(-1),
             },
             create: {
               inspectionNo: spec.inspection.number,
@@ -444,30 +566,47 @@ async function seedDatabase() {
               inspectedQuantity: spec.inspection.inspected,
               acceptedQuantity: spec.inspection.accepted,
               rejectedQuantity: spec.inspection.rejected,
-              measurements: spec.inspection.status === "PENDING"
-                ? { inspection: "Awaiting inspection", sampleSource: "Demo data" }
-                : { visualCheck: spec.inspection.rejected === 0 ? "PASS" : "FAIL", sampleSource: "Demo data" },
-              evidenceNotes: "Demo inspection record for the quality dashboard.",
-              inspectedAt: spec.inspection.status === "PENDING" ? null : dateOffset(-1),
+              measurements:
+                spec.inspection.status === "PENDING"
+                  ? {
+                      inspection: "Awaiting inspection",
+                      sampleSource: "Demo data",
+                    }
+                  : {
+                      visualCheck:
+                        spec.inspection.rejected === 0 ? "PASS" : "FAIL",
+                      sampleSource: "Demo data",
+                    },
+              evidenceNotes:
+                "Demo inspection record for the quality dashboard.",
+              inspectedAt:
+                spec.inspection.status === "PENDING" ? null : dateOffset(-1),
             },
           });
 
           if (spec.inspection.rejected > 0) {
             const defect = await tx.qualityDefect.findFirst({
-              where: { inspectionId: inspection.id, defectCode: "DEMO-SURFACE-FINISH" },
+              where: {
+                inspectionId: inspection.id,
+                defectCode: "DEMO-SURFACE-FINISH",
+              },
             });
             const defectData = {
               inspectionId: inspection.id,
               defectCode: "DEMO-SURFACE-FINISH",
               category: "Surface finish",
-              description: "Minor surface blemish found during visual inspection.",
+              description:
+                "Minor surface blemish found during visual inspection.",
               severity: "MEDIUM",
               quantity: spec.inspection.rejected,
               status: "IN_REWORK",
               disposition: "Repair and reinspect",
             };
             const savedDefect = defect
-              ? await tx.qualityDefect.update({ where: { id: defect.id }, data: defectData })
+              ? await tx.qualityDefect.update({
+                  where: { id: defect.id },
+                  data: defectData,
+                })
               : await tx.qualityDefect.create({ data: defectData });
 
             await tx.reworkOrder.upsert({
@@ -478,7 +617,8 @@ async function seedDatabase() {
                 assignedToId: qualityInspector.id,
                 quantity: spec.inspection.rejected,
                 status: "IN_PROGRESS",
-                reason: "Correct the surface finish and submit the parts for reinspection.",
+                reason:
+                  "Correct the surface finish and submit the parts for reinspection.",
               },
               create: {
                 reworkNo: `DEMO-RW-${spec.number.slice(-3)}`,
@@ -487,7 +627,8 @@ async function seedDatabase() {
                 assignedToId: qualityInspector.id,
                 quantity: spec.inspection.rejected,
                 status: "IN_PROGRESS",
-                reason: "Correct the surface finish and submit the parts for reinspection.",
+                reason:
+                  "Correct the surface finish and submit the parts for reinspection.",
               },
             });
           }
@@ -496,9 +637,15 @@ async function seedDatabase() {
         const existingAssignment = await tx.machineAssignment.findFirst({
           where: { workOrderId: workOrder.id, machineId: machine.id },
         });
-        const assignmentData = { startAt: dateOffset(spec.startOffset), endAt: dateOffset(spec.endOffset) };
+        const assignmentData = {
+          startAt: dateOffset(spec.startOffset),
+          endAt: dateOffset(spec.endOffset),
+        };
         if (existingAssignment) {
-          await tx.machineAssignment.update({ where: { id: existingAssignment.id }, data: assignmentData });
+          await tx.machineAssignment.update({
+            where: { id: existingAssignment.id },
+            data: assignmentData,
+          });
         } else {
           await tx.machineAssignment.create({
             data: {
@@ -511,7 +658,11 @@ async function seedDatabase() {
 
         if (spec.produced > 0) {
           const entry = await tx.productionEntry.findFirst({
-            where: { workOrderId: workOrder.id, operationLogId: operation.id, notes: "Demo production entry." },
+            where: {
+              workOrderId: workOrder.id,
+              operationLogId: operation.id,
+              notes: "Demo production entry.",
+            },
           });
           const entryData = {
             workOrderId: workOrder.id,
@@ -523,7 +674,10 @@ async function seedDatabase() {
             recordedAt: dateOffset(-1),
           };
           if (entry) {
-            await tx.productionEntry.update({ where: { id: entry.id }, data: entryData });
+            await tx.productionEntry.update({
+              where: { id: entry.id },
+              data: entryData,
+            });
           } else {
             await tx.productionEntry.create({ data: entryData });
           }
@@ -536,7 +690,8 @@ async function seedDatabase() {
           type: "QUALITY",
           severity: "MEDIUM",
           title: "Rework required for surface finish",
-          message: "A demo inspection found parts requiring rework before release.",
+          message:
+            "A demo inspection found parts requiring rework before release.",
           workOrderId: workOrders[0].id,
           machineId: machines[0].id,
           productId: products[0].id,
@@ -547,17 +702,19 @@ async function seedDatabase() {
           type: "QUALITY",
           severity: "MEDIUM",
           title: "Rework required for surface finish",
-          message: "A demo inspection found parts requiring rework before release.",
+          message:
+            "A demo inspection found parts requiring rework before release.",
           workOrderId: workOrders[0].id,
           machineId: machines[0].id,
           productId: products[0].id,
           status: "OPEN",
         },
       });
-
     });
     console.log("Demo data seeded successfully.");
-    console.log("Created or refreshed 2 customers, 3 products, 3 sales orders, 3 work orders, and related production and quality records.");
+    console.log(
+      "Created or refreshed 2 customers, 3 products, 3 sales orders, 3 work orders, and related production and quality records.",
+    );
   } catch (error) {
     console.error("Demo data seeding failed:", error);
     process.exitCode = 1;
