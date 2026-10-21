@@ -5,9 +5,18 @@ import { erpApi } from './services/api';
 
 import Sidebar from './components/layout/Sidebar';
 import TopBar from './components/layout/TopBar';
+
+// Module 5 Views
 import ProjectsView from './features/module5/projects/ProjectsView';
 import InstallationsView from './features/module5/installations/InstallationsView';
 import ServiceView from './features/module5/service/ServiceView';
+
+// Module 2 Views
+import VendorsView from './features/module2/vendors/VendorsView';
+import ProcurementView from './features/module2/procurement/ProcurementView';
+import InventoryView from './features/module2/inventory/InventoryView';
+
+// Modals
 import {
   CreateProjectModal,
   ScheduleInstallationModal,
@@ -18,23 +27,40 @@ import {
   VoiceRecorderModal,
 } from './components/common/Modals';
 
+import {
+  CreateVendorModal,
+  CreatePOModal,
+  CreatePRModal,
+  CreateGRNModal,
+  StockMoveModal,
+} from './components/common/Module2Modals';
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState('projects'); // 'projects' | 'installation' | 'service'
+  const [activeTab, setActiveTab] = useState('projects'); // 'vendors' | 'procurement' | 'inventory' | 'projects' | 'installation' | 'service'
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [apiOnline, setApiOnline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [toastMsg, setToastMsg] = useState('');
 
-  // Authoritative database entities
+  // Authoritative Module 5 Database Entities
   const [projects, setProjects] = useState([]);
   const [installations, setInstallations] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [lookups, setLookups] = useState({ salesOrders: [], customers: [], products: [], users: [] });
 
+  // Authoritative Module 2 Database Entities
+  const [vendors, setVendors] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [purchaseRequests, setPurchaseRequests] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [goodsReceipts, setGoodsReceipts] = useState([]);
+  const [movements, setMovements] = useState([]);
+
   // Modal states
-  const [modalType, setModalType] = useState(null); // 'CREATE_PROJECT' | 'SCHEDULE_INSTALLATION' | 'RAISE_TICKET' | 'ASSIGN_TASK' | 'TRACE_JOB' | 'PHOTO_PACK' | 'VOICE_RECORDER'
+  const [modalType, setModalType] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [selectedVendor, setSelectedVendor] = useState(null);
   const [traceData, setTraceData] = useState(null);
   const [traceLoading, setTraceLoading] = useState(false);
 
@@ -43,16 +69,34 @@ export default function App() {
     setTimeout(() => setToastMsg(''), 4500);
   };
 
-  // Refresh authoritative data from backend
+  // Refresh authoritative data across both modules
   const refreshData = async () => {
     try {
       setLoading(true);
-      const [resPrj, resInst, resTix, resLookups, resTasks] = await Promise.all([
+      const [
+        resPrj,
+        resInst,
+        resTix,
+        resLookups,
+        resTasks,
+        resVendors,
+        resPOs,
+        resPRs,
+        resInv,
+        resGRNs,
+        resMoves,
+      ] = await Promise.all([
         erpApi.getProjects().catch(() => null),
         erpApi.getInstallations().catch(() => null),
         erpApi.getTickets().catch(() => null),
         erpApi.getLookups().catch(() => null),
         erpApi.getTasks().catch(() => null),
+        erpApi.getVendors().catch(() => null),
+        erpApi.getPurchaseOrders().catch(() => null),
+        erpApi.getPurchaseRequests().catch(() => null),
+        erpApi.getInventory().catch(() => null),
+        erpApi.getGoodsReceipts().catch(() => null),
+        erpApi.getInventoryMovements().catch(() => null),
       ]);
 
       if (resPrj && resPrj.success) {
@@ -64,6 +108,26 @@ export default function App() {
         setTasks(resTasks?.data || []);
       } else {
         setApiOnline(false);
+      }
+
+      // Populate Module 2 data
+      if (resVendors && resVendors.success) {
+        setVendors(resVendors.data || []);
+      }
+      if (resPOs && resPOs.success) {
+        setPurchaseOrders(resPOs.data || []);
+      }
+      if (resPRs && resPRs.success) {
+        setPurchaseRequests(resPRs.data || []);
+      }
+      if (resInv && resInv.success) {
+        setInventory(resInv.data || []);
+      }
+      if (resGRNs && resGRNs.success) {
+        setGoodsReceipts(resGRNs.data || []);
+      }
+      if (resMoves && resMoves.success) {
+        setMovements(resMoves.data || []);
       }
     } catch (err) {
       console.error('Data load error:', err);
@@ -77,7 +141,9 @@ export default function App() {
     refreshData();
   }, []);
 
-  // Handlers for status updates
+  /* =========================================================================
+     MODULE 5 ACTION HANDLERS
+     ========================================================================= */
   const handleUpdateProjectStatus = async (id, status) => {
     try {
       await erpApi.updateProjectStatus(id, status);
@@ -108,7 +174,6 @@ export default function App() {
     }
   };
 
-  // Handlers for modal submissions
   const handleCreateProject = async (e) => {
     e.preventDefault();
     const form = new FormData(e.target);
@@ -225,6 +290,80 @@ export default function App() {
     }
   };
 
+  /* =========================================================================
+     MODULE 2 ACTION HANDLERS
+     ========================================================================= */
+  const handleSaveVendor = async (data) => {
+    try {
+      if (data.id) {
+        await erpApi.updateVendor(data.id, data);
+        toast(`Vendor ${data.name} updated successfully!`);
+      } else {
+        await erpApi.createVendor(data);
+        toast(`Vendor ${data.name} registered successfully!`);
+      }
+      setModalType(null);
+      setSelectedVendor(null);
+      refreshData();
+    } catch (err) {
+      alert(`Error saving vendor: ${err.message}`);
+    }
+  };
+
+  const handleCreatePO = async (poData) => {
+    try {
+      const res = await erpApi.createPurchaseOrder(poData);
+      toast(`Purchase Order ${res.data?.poNumber || ''} created successfully!`);
+      setModalType(null);
+      refreshData();
+    } catch (err) {
+      alert(`Error releasing Purchase Order: ${err.message}`);
+    }
+  };
+
+  const handleCreatePR = async (prData) => {
+    try {
+      const res = await erpApi.createPurchaseRequest(prData);
+      toast(`Purchase Request ${res.data?.prNumber || ''} submitted!`);
+      setModalType(null);
+      refreshData();
+    } catch (err) {
+      alert(`Error creating Purchase Request: ${err.message}`);
+    }
+  };
+
+  const handleUpdatePOStatus = async (id, status) => {
+    try {
+      await erpApi.updatePOStatus(id, status);
+      toast(`PO status updated to ${status}`);
+      refreshData();
+    } catch (err) {
+      alert(`Error updating PO status: ${err.message}`);
+    }
+  };
+
+  const handleCreateGRN = async (grnData) => {
+    try {
+      const res = await erpApi.createGoodsReceipt(grnData);
+      toast(`GRN ${res.data?.receiptNumber || ''} issued & inventory updated!`);
+      setModalType(null);
+      refreshData();
+    } catch (err) {
+      alert(`Error issuing GRN: ${err.message}`);
+    }
+  };
+
+  const handleRecordStockMovement = async (moveData) => {
+    try {
+      await erpApi.recordStockMovement(moveData);
+      toast('Material movement recorded successfully!');
+      setModalType(null);
+      refreshData();
+    } catch (err) {
+      alert(`Error recording stock movement: ${err.message}`);
+    }
+  };
+
   return (
     <div className="shell">
       <Sidebar
@@ -234,6 +373,9 @@ export default function App() {
         setSidebarOpen={setSidebarOpen}
         apiOnline={apiOnline}
         counts={{
+          vendors: vendors.length,
+          purchaseOrders: purchaseOrders.length,
+          inventory: inventory.length,
           projects: projects.length,
           installations: installations.length,
           service: tickets.length,
@@ -249,13 +391,65 @@ export default function App() {
           onOpenMedia={() => setModalType('PHOTO_PACK')}
           onOpenTaskModal={() => setModalType('ASSIGN_TASK')}
           onOpenAddModal={() => {
-            if (activeTab === 'projects') setModalType('CREATE_PROJECT');
-            else if (activeTab === 'installation') setModalType('SCHEDULE_INSTALLATION');
-            else setModalType('RAISE_TICKET');
+            if (activeTab === 'vendors') {
+              setSelectedVendor(null);
+              setModalType('CREATE_VENDOR');
+            } else if (activeTab === 'procurement') {
+              setModalType('CREATE_PO');
+            } else if (activeTab === 'inventory') {
+              setModalType('CREATE_GRN');
+            } else if (activeTab === 'projects') {
+              setModalType('CREATE_PROJECT');
+            } else if (activeTab === 'installation') {
+              setModalType('SCHEDULE_INSTALLATION');
+            } else {
+              setModalType('RAISE_TICKET');
+            }
           }}
         />
 
         <div className="content">
+          {/* MODULE 2 VIEWS */}
+          {activeTab === 'vendors' && (
+            <VendorsView
+              vendors={vendors}
+              onOpenCreateVendor={() => {
+                setSelectedVendor(null);
+                setModalType('CREATE_VENDOR');
+              }}
+              onOpenEditVendor={(vend) => {
+                setSelectedVendor(vend);
+                setModalType('EDIT_VENDOR');
+              }}
+              onOpenAssignTask={() => setModalType('ASSIGN_TASK')}
+            />
+          )}
+
+          {activeTab === 'procurement' && (
+            <ProcurementView
+              purchaseOrders={purchaseOrders}
+              purchaseRequests={purchaseRequests}
+              vendors={vendors}
+              products={lookups.products}
+              onOpenCreatePO={() => setModalType('CREATE_PO')}
+              onOpenCreatePR={() => setModalType('CREATE_PR')}
+              onUpdatePOStatus={handleUpdatePOStatus}
+              onOpenAssignTask={() => setModalType('ASSIGN_TASK')}
+            />
+          )}
+
+          {activeTab === 'inventory' && (
+            <InventoryView
+              inventory={inventory}
+              goodsReceipts={goodsReceipts}
+              movements={movements}
+              onOpenCreateGRN={() => setModalType('CREATE_GRN')}
+              onOpenStockMove={() => setModalType('STOCK_MOVE')}
+              onOpenAssignTask={() => setModalType('ASSIGN_TASK')}
+            />
+          )}
+
+          {/* MODULE 5 VIEWS */}
           {activeTab === 'projects' && (
             <ProjectsView
               projects={projects}
@@ -292,7 +486,9 @@ export default function App() {
         </div>
       </main>
 
-      {/* MODALS */}
+      {/* =========================================================
+          MODULE 5 MODALS
+         ========================================================= */}
       {modalType === 'CREATE_PROJECT' && (
         <CreateProjectModal
           lookups={lookups}
@@ -344,6 +540,55 @@ export default function App() {
         <VoiceRecorderModal
           onClose={() => setModalType(null)}
           toast={toast}
+        />
+      )}
+
+      {/* =========================================================
+          MODULE 2 MODALS
+         ========================================================= */}
+      {(modalType === 'CREATE_VENDOR' || modalType === 'EDIT_VENDOR') && (
+        <CreateVendorModal
+          initialData={selectedVendor}
+          onClose={() => {
+            setModalType(null);
+            setSelectedVendor(null);
+          }}
+          onSubmit={handleSaveVendor}
+        />
+      )}
+
+      {modalType === 'CREATE_PO' && (
+        <CreatePOModal
+          vendors={vendors}
+          products={lookups.products}
+          onClose={() => setModalType(null)}
+          onSubmit={handleCreatePO}
+        />
+      )}
+
+      {modalType === 'CREATE_PR' && (
+        <CreatePRModal
+          products={lookups.products}
+          onClose={() => setModalType(null)}
+          onSubmit={handleCreatePR}
+        />
+      )}
+
+      {modalType === 'CREATE_GRN' && (
+        <CreateGRNModal
+          purchaseOrders={purchaseOrders}
+          vendors={vendors}
+          onClose={() => setModalType(null)}
+          onSubmit={handleCreateGRN}
+        />
+      )}
+
+      {modalType === 'STOCK_MOVE' && (
+        <StockMoveModal
+          inventory={inventory}
+          products={lookups.products}
+          onClose={() => setModalType(null)}
+          onSubmit={handleRecordStockMovement}
         />
       )}
 

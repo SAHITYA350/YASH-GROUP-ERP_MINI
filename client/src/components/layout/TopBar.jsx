@@ -11,6 +11,18 @@ export default function TopBar({
   onOpenAddModal,
 }) {
   const titles = {
+    vendors: {
+      name: 'Vendor Management & Master Register',
+      sub: 'Module 2 · Vendor Qualification, Rating & Master Data',
+    },
+    procurement: {
+      name: 'Procurement, RFQ & Purchase Orders',
+      sub: 'Module 2 · Material Requisitions & Supplier Contracts',
+    },
+    inventory: {
+      name: 'Inventory, Warehouse & Goods Receipt (GRN)',
+      sub: 'Module 2 · Stock Control, Gate Inward & Movements',
+    },
     projects: {
       name: 'Project & Site Planning',
       sub: 'Module 5 · Operations & Field Engineering',
@@ -58,15 +70,8 @@ export default function TopBar({
           <span className="btn-icon">✓</span> Assign Task
         </button>
         <button type="button" className="topbtn primary add-btn" onClick={onOpenAddModal}>
-          <span className="btn-icon">＋</span> Add New
+          <span className="btn-icon">＋</span> Quick Add
         </button>
-        <div className="profile">
-          <div className="avatar">YG</div>
-          <div>
-            <b>Operations Lead</b>
-            <small>Enterprise Admin</small>
-          </div>
-        </div>
       </div>
     </header>
   );

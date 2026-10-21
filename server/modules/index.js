@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import projectRoutes from './project/project.routes.js';
 import installationRoutes from './installation/installation.routes.js';
 import serviceTicketRoutes from './serviceTicket/serviceTicket.routes.js';
+import module2Routes from './module2/module2.routes.js';
 
 const router = express.Router();
 
@@ -193,5 +194,6 @@ router.get('/trace/:projectId', async (req, res) => {
 router.use(projectRoutes);
 router.use(installationRoutes);
 router.use(serviceTicketRoutes);
+router.use(module2Routes);
 
 export default router;

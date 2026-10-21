@@ -47,16 +47,79 @@ export default function Sidebar({
           </button>
         </div>
 
+        {/* =========================================================
+            MODULE 02 SECTION: VENDOR, PROCUREMENT & INVENTORY
+           ========================================================= */}
         <div className="vtag">
+          <div className="vtag-header">
+            <span className="vtag-pulse"></span>
+            <b>MODULE 02 · VENDOR & SUPPLY</b>
+          </div>
+          <span>Procurement · RFQ · PO · Inventory & GRN</span>
+        </div>
+
+        <div className="navgroup">
+          <div className="navlabel">PROCUREMENT & INVENTORY</div>
+
+          <button
+            type="button"
+            className={`navbtn ${activeTab === 'vendors' ? 'active' : ''}`}
+            onClick={() => handleNavClick('vendors')}
+          >
+            <span className="navico">🏢</span>
+            <div className="nav-text">
+              <b>Vendor Management</b>
+              <small>Master · rating · capability</small>
+            </div>
+            {counts.vendors !== undefined && (
+              <span className="nav-badge">{counts.vendors}</span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${activeTab === 'procurement' ? 'active' : ''}`}
+            onClick={() => handleNavClick('procurement')}
+          >
+            <span className="navico">📋</span>
+            <div className="nav-text">
+              <b>Procurement & PO</b>
+              <small>PR · RFQ · compare · release</small>
+            </div>
+            {counts.purchaseOrders !== undefined && (
+              <span className="nav-badge">{counts.purchaseOrders}</span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${activeTab === 'inventory' ? 'active' : ''}`}
+            onClick={() => handleNavClick('inventory')}
+          >
+            <span className="navico">📦</span>
+            <div className="nav-text">
+              <b>Inventory & Receipt</b>
+              <small>GRN · stock · bin transfer</small>
+            </div>
+            {counts.inventory !== undefined && (
+              <span className="nav-badge">{counts.inventory}</span>
+            )}
+          </button>
+        </div>
+
+        {/* =========================================================
+            MODULE 05 SECTION: SITE & FIELD OPS
+           ========================================================= */}
+        <div className="vtag" style={{ marginTop: '16px' }}>
           <div className="vtag-header">
             <span className="vtag-pulse"></span>
             <b>MODULE 05 · SITE & FIELD OPS</b>
           </div>
-          <span>Projects · Installation · Commissioning · Service & Warranty</span>
+          <span>Projects · Installation · Service</span>
         </div>
 
         <div className="navgroup">
-          <div className="navlabel">OPERATIONAL WORKFLOW</div>
+          <div className="navlabel">FIELD & CLIENT OPERATIONS</div>
 
           <button
             type="button"
