@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "../../utils/formHook.js";
 import { Plus, Trash2 } from "lucide-react";
 import { Actions, ErrorMessage, Field, Modal } from "../ui.jsx";
 import api from "../../services/api.js";

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Plus, Eye, FileText } from "lucide-react";
-import * as XLSX from "xlsx";
+import XLSX from "../utils/excel.js";
 import DataList from "../components/DataList.jsx";
 import EnquiryForm from "../components/forms/EnquiryForm.jsx";
 import QuotationForm from "../components/forms/QuotationForm.jsx";

@@ -1,29 +1,87 @@
 // client/src/services/api.js
-import axios from "axios";
 
 export const API_BASE = '/api';
 
 // ==========================================
-// AXIOS INSTANCE FOR DEFAULT EXPORT
+// AXIOS-COMPATIBLE FETCH WRAPPER FOR DEFAULT EXPORT
 // ==========================================
-const axiosInstance = axios.create({
-  baseURL: "/api",
-  withCredentials: true,
-  headers: { "Content-Type": "application/json" },
-});
+function getCsrfToken() {
+  if (typeof document === 'undefined') return null;
+  return document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('yash_csrf='))
+    ?.split('=')[1];
+}
 
-axiosInstance.interceptors.request.use((config) => {
-  const csrf = document.cookie
-    .split("; ")
-    .find((cookie) => cookie.startsWith("yash_csrf="))
-    ?.split("=")[1];
+async function requestWithAxiosFormat(url, options = {}) {
+  const method = options.method || 'GET';
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
 
-  if (csrf) config.headers["x-csrf-token"] = csrf;
-  return config;
-});
+  const csrf = getCsrfToken();
+  if (csrf) {
+    headers['x-csrf-token'] = csrf;
+  }
+
+  const token = typeof localStorage !== 'undefined' ? (localStorage.getItem('erp_token') || localStorage.getItem('yash_erp_token')) : null;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url.startsWith('/') ? url : `/${url}`}`;
+
+  let body = options.data || options.body;
+  if (body && typeof body === 'object' && !(body instanceof FormData)) {
+    body = JSON.stringify(body);
+  }
+
+  const res = await fetch(fullUrl, {
+    method,
+    headers,
+    body: ['GET', 'HEAD'].includes(method.toUpperCase()) ? undefined : body,
+    credentials: 'include',
+  });
+
+  const contentType = res.headers.get('content-type');
+  const isJson = contentType && contentType.includes('application/json');
+  const data = isJson ? await res.json() : await res.text();
+
+  if (!res.ok) {
+    const error = new Error((data && data.message) || (data && data.error && data.error.message) || `HTTP Error ${res.status}`);
+    error.response = {
+      status: res.status,
+      statusText: res.statusText,
+      data,
+      headers: res.headers,
+    };
+    throw error;
+  }
+
+  return {
+    data,
+    status: res.status,
+    statusText: res.statusText,
+    headers: res.headers,
+  };
+}
+
+export const axiosInstance = {
+  get: (url, config = {}) => requestWithAxiosFormat(url, { ...config, method: 'GET' }),
+  post: (url, data, config = {}) => requestWithAxiosFormat(url, { ...config, method: 'POST', data }),
+  put: (url, data, config = {}) => requestWithAxiosFormat(url, { ...config, method: 'PUT', data }),
+  patch: (url, data, config = {}) => requestWithAxiosFormat(url, { ...config, method: 'PATCH', data }),
+  delete: (url, config = {}) => requestWithAxiosFormat(url, { ...config, method: 'DELETE' }),
+  create: () => axiosInstance,
+  interceptors: {
+    request: { use: () => {} },
+    response: { use: () => {} },
+  },
+};
 
 export function getApiErrorMessage(error) {
-  return error.response?.data?.error?.message || error.message || "Request failed";
+  return error.response?.data?.error?.message || error.response?.data?.message || error.message || "Request failed";
 }
 
 // ==========================================
@@ -152,7 +210,7 @@ export const api = {
   getLeaveBalances: (employeeId) => fetchJson(`/leaves/balances/${employeeId}`),
   createLeaveRequest: (payload) => fetchJson('/leaves', { method: 'POST', body: JSON.stringify(payload) }),
   approveLeaveRequest: (id) => fetchJson(`/leaves/${id}/approve`, { method: 'POST' }),
-  rejectLeaveRequest: (id, reason) => fetchJson(`/leaves/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  rejectLeaveRequest: (id, reason) => fetchJson(`/leaves/${id}/reject`, { method: 'POST', body: JSON.stringify(reason ? { reason } : {}) }),
 
   // Media Assets
   getMediaAssets: () => fetchJson('/media'),

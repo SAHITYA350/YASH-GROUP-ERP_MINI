@@ -11,6 +11,33 @@ export default function TopBar({
   onOpenAddModal,
 }) {
   const titles = {
+    // Module 1: Sales
+    customers: {
+      name: 'Customer & Client Master',
+      sub: 'Module 1 · Client Relationships & Contact Database',
+    },
+    enquiries: {
+      name: 'Sales Leads & Enquiries',
+      sub: 'Module 1 · Pipeline & Requirement Capture',
+    },
+    quotations: {
+      name: 'Commercial Quotations & Estimates',
+      sub: 'Module 1 · Costing, Approvals & Customer POs',
+    },
+    orders: {
+      name: 'Sales Orders Register',
+      sub: 'Module 1 · Confirmed Work Orders & Fulfillment',
+    },
+    products: {
+      name: 'Product Catalogue & SKUs',
+      sub: 'Module 1 · Specifications & List Prices',
+    },
+    access: {
+      name: 'Role-Based Access Control (RBAC)',
+      sub: 'Module 1 · System Security & User Governance',
+    },
+
+    // Module 2: Vendor & Supply
     vendors: {
       name: 'Vendor Management & Master Register',
       sub: 'Module 2 · Vendor Qualification, Rating & Master Data',
@@ -23,6 +50,8 @@ export default function TopBar({
       name: 'Inventory, Warehouse & Goods Receipt (GRN)',
       sub: 'Module 2 · Stock Control, Gate Inward & Movements',
     },
+
+    // Module 5: Field & Operations
     projects: {
       name: 'Project & Site Planning',
       sub: 'Module 5 · Operations & Field Engineering',
@@ -35,6 +64,42 @@ export default function TopBar({
       name: 'Service, Complaint & Warranty',
       sub: 'Module 5 · After-Sales & Warranty Lifecycle',
     },
+
+    // Module 6: Finance & Accounts
+    'finance-dashboard': {
+      name: 'Commercial & Financial Performance',
+      sub: 'Module 6 · Revenue, Ageing & Operating Margin',
+    },
+    'finance-invoices': {
+      name: 'GST Tax Invoicing & Billing',
+      sub: 'Module 6 · Customer Bills & Tax Invoices',
+    },
+    'finance-receivables': {
+      name: 'Receivables & Ageing Summary',
+      sub: 'Module 6 · Outstanding Ledger & Collections',
+    },
+    'finance-payments': {
+      name: 'Payments Received & Remittances',
+      sub: 'Module 6 · Bank Receipts & Payment Logs',
+    },
+    'finance-bills': {
+      name: 'Vendor Bills & Payables Ledger',
+      sub: 'Module 6 · Supplier Liabilities & Due Dates',
+    },
+    'finance-expenses': {
+      name: 'Direct Project & Site Expenses',
+      sub: 'Module 6 · Travel, Material & Field Vouchers',
+    },
+    'finance-costing': {
+      name: 'Job Costing & Profitability',
+      sub: 'Module 6 · Real-time Variance & Margin Analysis',
+    },
+    'finance-reports': {
+      name: 'Statutory, Tax & MIS Reports',
+      sub: 'Module 6 · GSTR-1, P&L & Cash Flow Audit',
+    },
+
+    // Module 7: Workforce & HR
     employees: {
       name: 'Employees & Payroll Management',
       sub: 'Module 7 · HR Operations & Compensation',

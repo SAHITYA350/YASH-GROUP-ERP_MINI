@@ -1,20 +1,34 @@
 // client/src/components/layout/Sidebar.jsx
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function Sidebar({
   activeTab,
   setActiveTab,
   sidebarOpen,
   setSidebarOpen,
-  apiOnline,
+  apiOnline = true,
   counts = {},
 }) {
-  const handleNavClick = (tab) => {
-    setActiveTab(tab);
-    // Auto close sidebar on mobile when navigating
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleNavClick = (tab, routePath) => {
+    if (setActiveTab) {
+      setActiveTab(tab);
+    }
+    if (routePath) {
+      navigate(routePath);
+    }
     if (sidebarOpen && setSidebarOpen) {
       setSidebarOpen(false);
     }
+  };
+
+  const isCurrent = (tab, routePrefix) => {
+    if (activeTab === tab) return true;
+    if (routePrefix && location.pathname.startsWith(routePrefix)) return true;
+    return false;
   };
 
   return (
@@ -33,10 +47,9 @@ export default function Sidebar({
             <span>YG</span>
           </div>
           <div className="brand-info">
-            <h1>Yash ERP</h1>
+            <h1>YASH ERP</h1>
             <small>Enterprise Control System</small>
           </div>
-          {/* Close button on mobile inside sidebar */}
           <button 
             type="button" 
             className="sidebar-close-btn" 
@@ -48,9 +61,96 @@ export default function Sidebar({
         </div>
 
         {/* =========================================================
-            MODULE 02 SECTION: VENDOR, PROCUREMENT & INVENTORY
+            MODULE 01 SECTION: SALES & CLIENT RELATIONS
            ========================================================= */}
         <div className="vtag">
+          <div className="vtag-header">
+            <span className="vtag-pulse"></span>
+            <b>MODULE 01 · SALES & CLIENTS</b>
+          </div>
+          <span>Leads · Quotes · Orders · Access</span>
+        </div>
+
+        <div className="navgroup">
+          <div className="navlabel">SALES & CRM</div>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('customers', '/sales/customers') ? 'active' : ''}`}
+            onClick={() => handleNavClick('customers', '/sales/customers')}
+          >
+            <span className="navico">👥</span>
+            <div className="nav-text">
+              <b>Customers</b>
+              <small>Client Master Directory</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('enquiries', '/sales/enquiries') ? 'active' : ''}`}
+            onClick={() => handleNavClick('enquiries', '/sales/enquiries')}
+          >
+            <span className="navico">💬</span>
+            <div className="nav-text">
+              <b>Enquiries & Leads</b>
+              <small>Pipeline & Opportunities</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('quotations', '/sales/quotations') ? 'active' : ''}`}
+            onClick={() => handleNavClick('quotations', '/sales/quotations')}
+          >
+            <span className="navico">📑</span>
+            <div className="nav-text">
+              <b>Quotations</b>
+              <small>Proposals & Pricing</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('orders', '/sales/orders') ? 'active' : ''}`}
+            onClick={() => handleNavClick('orders', '/sales/orders')}
+          >
+            <span className="navico">🛒</span>
+            <div className="nav-text">
+              <b>Sales Orders</b>
+              <small>Confirmed Work Orders</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('products', '/sales/products') ? 'active' : ''}`}
+            onClick={() => handleNavClick('products', '/sales/products')}
+          >
+            <span className="navico">📦</span>
+            <div className="nav-text">
+              <b>Product Catalog</b>
+              <small>SKUs & Specs</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('access', '/sales/access') ? 'active' : ''}`}
+            onClick={() => handleNavClick('access', '/sales/access')}
+          >
+            <span className="navico">🔒</span>
+            <div className="nav-text">
+              <b>Access Control</b>
+              <small>RBAC Permissions</small>
+            </div>
+          </button>
+        </div>
+
+        {/* =========================================================
+            MODULE 02 SECTION: VENDOR, PROCUREMENT & INVENTORY
+           ========================================================= */}
+        <div className="vtag" style={{ marginTop: '16px' }}>
           <div className="vtag-header">
             <span className="vtag-pulse"></span>
             <b>MODULE 02 · VENDOR & SUPPLY</b>
@@ -63,8 +163,8 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`navbtn ${activeTab === 'vendors' ? 'active' : ''}`}
-            onClick={() => handleNavClick('vendors')}
+            className={`navbtn ${isCurrent('vendors', '/procurement/vendors') ? 'active' : ''}`}
+            onClick={() => handleNavClick('vendors', '/procurement/vendors')}
           >
             <span className="navico">🏢</span>
             <div className="nav-text">
@@ -78,8 +178,8 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`navbtn ${activeTab === 'procurement' ? 'active' : ''}`}
-            onClick={() => handleNavClick('procurement')}
+            className={`navbtn ${isCurrent('procurement', '/procurement/orders') ? 'active' : ''}`}
+            onClick={() => handleNavClick('procurement', '/procurement/orders')}
           >
             <span className="navico">📋</span>
             <div className="nav-text">
@@ -93,8 +193,8 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`navbtn ${activeTab === 'inventory' ? 'active' : ''}`}
-            onClick={() => handleNavClick('inventory')}
+            className={`navbtn ${isCurrent('inventory', '/procurement/inventory') ? 'active' : ''}`}
+            onClick={() => handleNavClick('inventory', '/procurement/inventory')}
           >
             <span className="navico">📦</span>
             <div className="nav-text">
@@ -123,8 +223,8 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`navbtn ${activeTab === 'projects' ? 'active' : ''}`}
-            onClick={() => handleNavClick('projects')}
+            className={`navbtn ${isCurrent('projects', '/operations/projects') ? 'active' : ''}`}
+            onClick={() => handleNavClick('projects', '/operations/projects')}
           >
             <span className="navico">⌂</span>
             <div className="nav-text">
@@ -138,8 +238,8 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`navbtn ${activeTab === 'installation' ? 'active' : ''}`}
-            onClick={() => handleNavClick('installation')}
+            className={`navbtn ${isCurrent('installation', '/operations/installations') ? 'active' : ''}`}
+            onClick={() => handleNavClick('installation', '/operations/installations')}
           >
             <span className="navico">⚙</span>
             <div className="nav-text">
@@ -153,8 +253,8 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`navbtn ${activeTab === 'service' ? 'active' : ''}`}
-            onClick={() => handleNavClick('service')}
+            className={`navbtn ${isCurrent('service', '/operations/service') ? 'active' : ''}`}
+            onClick={() => handleNavClick('service', '/operations/service')}
           >
             <span className="navico">⚒</span>
             <div className="nav-text">
@@ -164,6 +264,117 @@ export default function Sidebar({
             {counts.service !== undefined && (
               <span className="nav-badge">{counts.service}</span>
             )}
+          </button>
+        </div>
+
+        {/* =========================================================
+            MODULE 06 SECTION: FINANCE & COMMERCIAL
+           ========================================================= */}
+        <div className="vtag" style={{ marginTop: '16px' }}>
+          <div className="vtag-header">
+            <span className="vtag-pulse"></span>
+            <b>MODULE 06 · COMMERCIAL & FINANCE</b>
+          </div>
+          <span>Billing · GST · Receivables · Costing</span>
+        </div>
+
+        <div className="navgroup">
+          <div className="navlabel">COMMERCIAL DESK</div>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('finance-dashboard', '/finance/dashboard') ? 'active' : ''}`}
+            onClick={() => handleNavClick('finance-dashboard', '/finance/dashboard')}
+          >
+            <span className="navico">💰</span>
+            <div className="nav-text">
+              <b>Finance Dashboard</b>
+              <small>Cashflow & Commercial KPI</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('finance-invoices', '/finance/invoices') ? 'active' : ''}`}
+            onClick={() => handleNavClick('finance-invoices', '/finance/invoices')}
+          >
+            <span className="navico">🧾</span>
+            <div className="nav-text">
+              <b>Invoices & Tax Invoicing</b>
+              <small>GST Invoices & Credit Notes</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('finance-receivables', '/finance/receivables') ? 'active' : ''}`}
+            onClick={() => handleNavClick('finance-receivables', '/finance/receivables')}
+          >
+            <span className="navico">💳</span>
+            <div className="nav-text">
+              <b>Receivables & Ageing</b>
+              <small>Customer outstanding & follow-up</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('finance-payments', '/finance/payments') ? 'active' : ''}`}
+            onClick={() => handleNavClick('finance-payments', '/finance/payments')}
+          >
+            <span className="navico">💵</span>
+            <div className="nav-text">
+              <b>Payments Received</b>
+              <small>NEFT / RTGS & Bank receipts</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('finance-bills', '/finance/vendor-bills') ? 'active' : ''}`}
+            onClick={() => handleNavClick('finance-bills', '/finance/vendor-bills')}
+          >
+            <span className="navico">📑</span>
+            <div className="nav-text">
+              <b>Vendor Bills & Payables</b>
+              <small>Supplier liability & payments</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('finance-expenses', '/finance/expenses') ? 'active' : ''}`}
+            onClick={() => handleNavClick('finance-expenses', '/finance/expenses')}
+          >
+            <span className="navico">🏷️</span>
+            <div className="nav-text">
+              <b>Direct Site Expenses</b>
+              <small>Travel, diesel & lodging</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('finance-costing', '/finance/costing') ? 'active' : ''}`}
+            onClick={() => handleNavClick('finance-costing', '/finance/costing')}
+          >
+            <span className="navico">📈</span>
+            <div className="nav-text">
+              <b>Job Costing & Profit</b>
+              <small>Revenue vs actual site expense</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`navbtn ${isCurrent('finance-reports', '/finance/reports') ? 'active' : ''}`}
+            onClick={() => handleNavClick('finance-reports', '/finance/reports')}
+          >
+            <span className="navico">📊</span>
+            <div className="nav-text">
+              <b>Audit & MIS Reports</b>
+              <small>GSTR-1, P&L & Cash summary</small>
+            </div>
           </button>
         </div>
 
@@ -183,8 +394,8 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`navbtn ${activeTab === 'employees' ? 'active' : ''}`}
-            onClick={() => handleNavClick('employees')}
+            className={`navbtn ${isCurrent('employees', '/workforce/employees') ? 'active' : ''}`}
+            onClick={() => handleNavClick('employees', '/workforce/employees')}
           >
             <span className="navico">👥</span>
             <div className="nav-text">
@@ -195,8 +406,8 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`navbtn ${activeTab === 'leaves' ? 'active' : ''}`}
-            onClick={() => handleNavClick('leaves')}
+            className={`navbtn ${isCurrent('leaves', '/workforce/leaves') ? 'active' : ''}`}
+            onClick={() => handleNavClick('leaves', '/workforce/leaves')}
           >
             <span className="navico">📅</span>
             <div className="nav-text">
@@ -207,8 +418,8 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`navbtn ${activeTab === 'tasks' ? 'active' : ''}`}
-            onClick={() => handleNavClick('tasks')}
+            className={`navbtn ${isCurrent('tasks', '/workforce/tasks') ? 'active' : ''}`}
+            onClick={() => handleNavClick('tasks', '/workforce/tasks')}
           >
             <span className="navico">✓</span>
             <div className="nav-text">
@@ -219,8 +430,8 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`navbtn ${activeTab === 'mis' ? 'active' : ''}`}
-            onClick={() => handleNavClick('mis')}
+            className={`navbtn ${isCurrent('mis', '/workforce/mis') ? 'active' : ''}`}
+            onClick={() => handleNavClick('mis', '/workforce/mis')}
           >
             <span className="navico">📊</span>
             <div className="nav-text">
@@ -231,8 +442,8 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`navbtn ${activeTab === 'trace' ? 'active' : ''}`}
-            onClick={() => handleNavClick('trace')}
+            className={`navbtn ${isCurrent('trace', '/workforce/matrix') ? 'active' : ''}`}
+            onClick={() => handleNavClick('trace', '/workforce/matrix')}
           >
             <span className="navico">💼</span>
             <div className="nav-text">
@@ -243,8 +454,8 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`navbtn ${activeTab === 'media' ? 'active' : ''}`}
-            onClick={() => handleNavClick('media')}
+            className={`navbtn ${isCurrent('media', '/workforce/media') ? 'active' : ''}`}
+            onClick={() => handleNavClick('media', '/workforce/media')}
           >
             <span className="navico">📁</span>
             <div className="nav-text">
@@ -257,10 +468,10 @@ export default function Sidebar({
         <div className="sidebar-footer">
           <div className={`connection-pill ${apiOnline ? 'online' : 'offline'}`}>
             <span className="connection-dot"></span>
-            <span>{apiOnline ? 'PostgreSQL Active' : 'Backend Offline / Reconnecting'}</span>
+            <span>{apiOnline ? 'ERP Core Online' : 'Backend Reconnecting'}</span>
           </div>
           <div className="db-info-pill">
-            <small>Shared Database · Multi-Tier PERN</small>
+            <small>Integrated 5-Module PERN ERP</small>
           </div>
         </div>
       </aside>

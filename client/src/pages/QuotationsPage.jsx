@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Eye, CheckCircle, XCircle, ShoppingCart, FileDown } from "lucide-react";
-import * as XLSX from "xlsx";
+import XLSX from "../utils/excel.js";
 import DataList from "../components/DataList.jsx";
 import { ErrorMessage, Modal } from "../components/ui.jsx";
 import api, { getApiErrorMessage } from "../services/api.js";

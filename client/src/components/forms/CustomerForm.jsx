@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm } from "../../utils/formHook.js";
 import { Actions, ErrorMessage, Field, Modal } from "../ui.jsx";
 
 export default function CustomerForm({ close, save, error }) {

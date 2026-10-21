@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm } from "../utils/formHook.js";
 import { ErrorMessage, Field } from "../components/ui.jsx";
 import api, { getApiErrorMessage } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
