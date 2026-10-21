@@ -1,8 +1,13 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import tailwindcss from '@tailwindcss/vite'
+import { fileURLToPath } from 'node:url'
+import { defineConfig, loadEnv } from 'vite'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const serverDirectory = fileURLToPath(new URL('../server', import.meta.url))
+  const serverEnv = loadEnv(mode, serverDirectory, '')
+  const apiPort = serverEnv.PORT || '5000'  
   plugins: [react()],
   server: {
     port: 5173,
@@ -13,4 +18,8 @@ export default defineConfig({
       },
     },
   },
+    return {
+    plugins: [react(), tailwindcss()],
+    server: { proxy: { '/api': `http://localhost:${apiPort}` } },
+  }
 })

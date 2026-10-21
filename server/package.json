@@ -1,7 +1,7 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Yash Group ERP sales workflow API",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -13,16 +13,27 @@
   "author": "",
   "license": "ISC",
   "type": "module",
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "dependencies": {
-    "@prisma/client": "^6.19.3",
-    "bcryptjs": "^3.0.3",
+    "@prisma/client": "^6.19.0",
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^18.0.8",
     "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0",
+    "zod": "^4.6.7",
     "jsonwebtoken": "^9.0.3",
     "prisma": "^6.19.3"
   },
-  "prisma": {
-    "seed": "node prisma/seed.js"
+  "devDependencies": {
+    "prisma": "^6.19.0",
+    "supertest": "^7.3.1",
+    "vitest": "^5.0.5"
   }
 }
