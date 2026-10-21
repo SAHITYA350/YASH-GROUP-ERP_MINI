@@ -1,122 +1,305 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+const API = import.meta.env.VITE_API_URL || '/api'
+const navigation = [
+  { title: 'WORKSPACE', links: [['dashboard', 'Overview', '◫'], ['planning', 'Planning', '▦']] },
+  { title: 'PRODUCTION', links: [['orders', 'Production orders', '▤'], ['work-orders', 'Work orders', '▧'], ['tracking', 'Production tracking', '◷'], ['workers', 'Worker allocation', '♙'], ['machines', 'Machine management', '⚙'], ['materials', 'Material consumption', '▥'], ['complete', 'Production complete', '✓'], ['bom', 'Bill of materials', '⊞']] },
+  { title: 'QUALITY', links: [['inspections', 'Inspections', '⌕'], ['defects', 'Defects', '⚑'], ['rework', 'Rework', '↻'], ['reports', 'Quality reports', '▥']] },
+]
+const titles = { ...Object.fromEntries(navigation.flatMap((group) => group.links.map(([key, label]) => [key, label]))), 'order-detail': 'Work order details' }
+const today = new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+async function request(path, options = {}) {
+  const response = await fetch(`${API}${path}`, {
+    ...options,
+    headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...options.headers },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  })
+  const result = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(result.message || `Request failed (${response.status})`)
+  return result.data ?? result
 }
+
+function Icon({ children, className = '' }) { return <span className={`icon ${className}`} aria-hidden="true">{children}</span> }
+function Metric({ label, value, note, icon, tone = 'blue' }) {
+  return <article className="metric-card"><div className={`metric-icon ${tone}`}><Icon>{icon}</Icon></div><div className="metric-copy"><span>{label}</span><strong>{value ?? '—'}</strong><small>{note}</small></div></article>
+}
+function Status({ value }) { return <span className={`status status-${String(value || 'unknown').toLowerCase().replaceAll('_', '-')}`}>{String(value || '—').replaceAll('_', ' ')}</span> }
+function Empty({ title = 'Nothing here yet', text = 'Records will appear when they are added.' }) { return <div className="empty"><span>▧</span><strong>{title}</strong><p>{text}</p></div> }
+function Table({ columns, rows, emptyText }) {
+  if (!rows?.length) return <Empty text={emptyText} />
+  return <div className="table-wrap"><table><thead><tr>{columns.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={row.id ?? row.workOrderNo ?? row.inspectionNo ?? index}>{columns.map((column) => <td key={column.key}>{column.render ? column.render(row) : (column.path || column.key).split('.').reduce((value, part) => value?.[part], row) ?? '—'}</td>)}</tr>)}</tbody></table></div>
+}
+function Field({ label, children, wide = false }) { return <label className={wide ? 'field wide' : 'field'}><span>{label}</span>{children}</label> }
+function Form({ children, onSubmit, submit = 'Save changes', busy }) { return <form className="form-grid" onSubmit={onSubmit}>{children}<div className="form-actions"><button className="button primary" type="submit" disabled={busy}>{busy ? 'Saving…' : submit}</button></div></form> }
+function Input({ name, type = 'text', value, placeholder, required, min, step, options, disabled }) {
+  if (options) return <select name={name} defaultValue={value || ''} required={required} disabled={disabled}><option value="">Select…</option>{options.map((option) => typeof option === 'string' ? <option key={option} value={option}>{option.replaceAll('_', ' ')}</option> : <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+  if (type === 'textarea') return <textarea name={name} defaultValue={value} placeholder={placeholder} required={required} rows="3" />
+  return <input name={name} type={type} defaultValue={value} placeholder={placeholder} required={required} min={min} step={step} disabled={disabled} />
+}
+function PageHeading({ kicker = 'OPERATIONS', title, description, action, onAction }) {
+  return <div className="page-heading"><div><div className="eyebrow">{kicker}</div><h1>{title}</h1><p>{description}</p></div>{action && <button className="button primary" onClick={onAction}><Icon>＋</Icon>{action}</button>}</div>
+}
+function Section({ title, subtitle, action, onAction, children, className = '' }) {
+  return <section className={`panel ${className}`}><header className="panel-heading"><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>{action && <button className="button subtle" onClick={onAction}>{action}</button>}</header>{children}</section>
+}
+
+function App() {
+  const [page, setPage] = useState('dashboard')
+  const [data, setData] = useState({})
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [modal, setModal] = useState('')
+  const [selectedOrder, setSelectedOrder] = useState('')
+  const [editingOrder, setEditingOrder] = useState(null)
+  const [ordersCache, setOrdersCache] = useState([])
+  const [filters, setFilters] = useState({ status: '', query: '' })
+
+  const load = useCallback(async (target = page, params = {}) => {
+    setError('')
+    try {
+      const result = await fetchPageData(target, selectedOrder, params)
+      if (Array.isArray(result?.orders)) setOrdersCache(result.orders)
+      setData((current) => ({ ...current, [target]: result }))
+    } catch (e) {
+      setData((current) => ({ ...current, [target]: null }))
+      setError(e.message.includes('Failed to fetch') ? 'API is offline. Start the server and configure its database to load live ERP records.' : e.message)
+    }
+  }, [page, selectedOrder])
+
+  useEffect(() => { const timer = setTimeout(() => { void load(page) }, 0); return () => clearTimeout(timer) }, [load, page])
+  useEffect(() => { if (!notice) return undefined; const timer = setTimeout(() => setNotice(''), 3600); return () => clearTimeout(timer) }, [notice])
+
+  async function save(path, body, method = 'POST', success = 'Saved successfully.') {
+    setBusy(true)
+    try {
+      await request(path, { method, body })
+      setNotice(success); setModal(''); await load(page); return true
+    } catch (e) { setError(e.message); return false }
+    finally { setBusy(false) }
+  }
+
+  const current = data[page]
+  const filteredOrders = useMemo(() => {
+    const orders = Array.isArray(current?.orders) ? current.orders : []
+    return orders.filter((order) => (!filters.status || order.status === filters.status) && (!filters.query || `${order.workOrderNo} ${order.salesOrder?.orderNumber || ''} ${order.salesOrder?.customer?.name || ''}`.toLowerCase().includes(filters.query.toLowerCase())))
+  }, [current, filters])
+
+  const orderOptions = (ordersCache.length ? ordersCache : data.orders?.orders || data['work-orders']?.orders || []).map((order) => ({ value: order.id, label: `${order.workOrderNo} · ${order.salesOrder?.orderNumber || 'Sales order'}` }))
+  const modalTitle = ({ order: 'Create production order', editOrder: 'Edit production order', machine: 'Add machine', worker: 'Allocate a worker', inspection: 'Record quality inspection', defect: 'Log a quality defect', rework: 'Create a rework order', tracking: 'Record production output', consumption: 'Record material consumption', assignMachine: 'Assign a machine', bom: 'Create BOM revision' })[modal]
+
+  return <div className="app-shell">
+    <aside className="sidebar">
+      <div className="brand"><div className="brand-mark">Y</div><div><strong>YASH<span>GROUP</span></strong><small>ENTERPRISE ERP</small></div><button className="collapse" aria-label="Collapse navigation">‹</button></div>
+      <div className="workspace-switch"><div className="workspace-avatar">YG</div><div><strong>YASH Group</strong><small>Manufacturing</small></div><span>⌄</span></div>
+      <nav>{navigation.map((group) => <div className="nav-group" key={group.title}><div className="nav-title">{group.title}</div>{group.links.map(([key, label, icon]) => <button key={key} className={`nav-link ${page === key ? 'active' : ''}`} onClick={() => { setPage(key); setError('') }}><Icon>{icon}</Icon><span>{label}</span>{key === 'inspections' && data.dashboard?.quality?.byStatus?.PENDING > 0 && <b className="nav-count">{data.dashboard.quality.byStatus.PENDING}</b>}</button>)}</div>)}</nav>
+      <div className="sidebar-bottom"><div className="help-card"><span>Need a hand?</span><p>Open the production handbook</p><button onClick={() => setNotice('Production and quality workflows are available in the navigation.')}>View guide <span>↗</span></button></div><div className="user-mini"><div className="user-avatar">YG</div><div><strong>YASH Admin</strong><small>Operations team</small></div><span>•••</span></div></div>
+    </aside>
+
+    <main className="main-area">
+      <header className="topbar"><div className="breadcrumb">Operations <span>/</span> <strong>{titles[page]}</strong></div><div className="top-actions"><div className="top-date"><span>◷</span>{today}</div><button className="top-icon" aria-label="Notifications" onClick={() => setNotice('You are all caught up.')}>♧<i /></button><div className="top-user"><div className="user-avatar">YG</div><span>YASH Admin</span><b>⌄</b></div></div></header>
+      <div className="content">
+        {error && <div className="alert error"><span>!</span>{error}<button onClick={() => load(page)}>Retry</button><button aria-label="Dismiss" onClick={() => setError('')}>×</button></div>}
+        {notice && <div className="alert success"><span>✓</span>{notice}<button aria-label="Dismiss" onClick={() => setNotice('')}>×</button></div>}
+        {page === 'dashboard' && <Dashboard data={current} onNavigate={setPage} onRefresh={() => load('dashboard')} />}
+        {(page === 'orders' || page === 'work-orders') && <OrderList page={page} result={current} orders={filteredOrders} filters={filters} setFilters={setFilters} onCreate={() => { load('orders'); load('sales-orders'); setModal('order') }} onSelect={(id) => { setSelectedOrder(String(id)); setPage('order-detail') }} onEdit={(order) => { setEditingOrder(order); setModal('editOrder') }} onTrack={(id) => { setSelectedOrder(String(id)); setPage('tracking') }} onComplete={(id) => save(`/production/orders/${id}`, { status: 'COMPLETED' }, 'PATCH', 'Work order completed and goods received into inventory.')} />}
+        {page === 'order-detail' && <OrderDetails result={current} onBack={() => setPage('orders')} onTrack={() => setPage('tracking')} />}
+        {page === 'planning' && <Planning result={current} onRefresh={(range) => load('planning', range)} onCreate={() => { load('orders'); load('sales-orders'); setModal('order') }} onUpdate={(id, payload) => save(`/production/orders/${id}`, payload, 'PATCH', 'Production plan updated.')} onApprovalAction={(id, action, notes) => save(`/production/orders/${id}/plan-approval`, { action, notes }, 'PATCH', 'Plan approval updated.')} />}
+        {page === 'tracking' && <Tracking result={current} orders={current?.orders || data.orders?.orders || []} selected={selectedOrder} setSelected={setSelectedOrder} onTrack={() => { load('machines'); setModal('tracking') }} onAssignMachine={() => { load('machines'); setModal('assignMachine') }} onOperationStatus={(id, status) => save(`/production/operations/${id}`, { status }, 'PATCH', 'Operation status updated.')} onRefresh={() => load('tracking')} />}
+        {page === 'workers' && <Workers result={current} workers={current?.workers || []} orders={current?.orders || []} onAllocate={() => setModal('worker')} onRefresh={() => load('workers')} onRemove={(id) => save(`/production/allocations/${id}`, null, 'DELETE', 'Worker allocation removed.')} />}
+        {page === 'machines' && <Machines result={current} onAdd={() => setModal('machine')} onRefresh={() => load('machines')} onUpdate={(id, status) => save(`/production/machines/${id}`, { status }, 'PATCH', 'Machine status updated.')} />}
+        {page === 'materials' && <Materials result={current} orders={current?.orders || data.orders?.orders || []} selected={selectedOrder} setSelected={setSelectedOrder} onConsume={() => setModal('consumption')} onRefresh={() => load('materials')} />}
+        {page === 'complete' && <Completion orders={current?.orders || []} onComplete={(id) => save(`/production/orders/${id}`, { status: 'COMPLETED' }, 'PATCH', 'Work order completed and good quantity moved into finished goods stock.')} onOpenTracking={(id) => { setSelectedOrder(String(id)); setPage('tracking') }} />}
+        {page === 'inspections' && <Inspections result={current} onAdd={() => { load('orders'); setModal('inspection') }} onRelease={(id) => save(`/quality/inspections/${id}`, { status: 'RELEASED' }, 'PATCH', 'Inspection released.')} />}
+        {page === 'defects' && <Defects result={current} inspections={current?.inspections || []} onAdd={() => { load('inspections'); setModal('defect') }} onUpdate={(id, status) => save(`/quality/defects/${id}`, { status }, 'PATCH', 'Defect status updated.')} />}
+        {page === 'rework' && <Rework result={current} defects={current?.defects || []} workers={current?.workers || []} onAdd={() => setModal('rework')} onUpdate={(id, status) => save(`/quality/rework/${id}`, { status }, 'PATCH', 'Rework order updated.')} />}
+        {page === 'reports' && <QualityReports result={current} onRefresh={(range) => load('reports', range)} />}
+        {page === 'bom' && <BomList result={current} onAdd={() => { load('products'); setModal('bom') }} onRefresh={() => load('bom')} onUpdate={(id, status) => save(`/production/bom/${id}`, { status }, 'PATCH', 'BOM status updated.')} />}
+      </div>
+    </main>
+
+    {modal && <Modal title={modalTitle} onClose={() => setModal('')}>
+      {modal === 'order' && <Form busy={busy} submit="Create order" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); save('/production/orders', { salesOrderId: f.get('salesOrderId'), bomRevisionId: f.get('bomRevisionId') || undefined, plannedQuantity: f.get('plannedQuantity'), plannedStart: f.get('plannedStart') || undefined, plannedEnd: f.get('plannedEnd') || undefined, priority: f.get('priority'), notes: f.get('notes') }) }}><Field label="Sales order"><Input name="salesOrderId" options={(data['sales-orders'] || []).map((order) => ({ value: order.id, label: `${order.orderNumber} · ${order.customer?.name} (${order.status})` }))} required /></Field><Field label="BOM revision ID"><Input name="bomRevisionId" type="number" min="1" placeholder="Optional released BOM ID" /></Field><Field label="Planned quantity"><Input name="plannedQuantity" type="number" min="0.001" step="0.001" required placeholder="0" /></Field><Field label="Priority"><Input name="priority" options={['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']} value="MEDIUM" /></Field><Field label="Planned start"><Input name="plannedStart" type="date" /></Field><Field label="Planned end"><Input name="plannedEnd" type="date" /></Field><Field label="Notes" wide><Input name="notes" type="textarea" placeholder="Production instructions…" /></Field></Form>}
+      {modal === 'editOrder' && editingOrder && <Form busy={busy} submit="Save order" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); save(`/production/orders/${editingOrder.id}`, { plannedQuantity: f.get('plannedQuantity'), plannedStart: f.get('plannedStart') || null, plannedEnd: f.get('plannedEnd') || null, priority: f.get('priority'), notes: f.get('notes') }, 'PATCH', 'Production order updated.') }}><Field label="Planned quantity"><Input name="plannedQuantity" type="number" min="0.001" step="0.001" value={editingOrder.plannedQuantity} required /></Field><Field label="Priority"><Input name="priority" options={['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']} value={editingOrder.priority} /></Field><Field label="Planned start"><Input name="plannedStart" type="date" value={dateInputValue(editingOrder.plannedStart)} /></Field><Field label="Planned end"><Input name="plannedEnd" type="date" value={dateInputValue(editingOrder.plannedEnd)} /></Field><Field label="Notes" wide><Input name="notes" type="textarea" value={editingOrder.notes || ''} /></Field></Form>}
+      {modal === 'machine' && <Form busy={busy} submit="Add machine" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); save('/production/machines', { machineCode: f.get('machineCode'), name: f.get('name'), workCenter: f.get('workCenter'), capacityPerShift: f.get('capacityPerShift') || undefined, hourlyCost: f.get('hourlyCost') || 0, status: f.get('status'), notes: f.get('notes') }) }}><Field label="Machine code"><Input name="machineCode" required placeholder="e.g. CNC-01" /></Field><Field label="Machine name"><Input name="name" required placeholder="Machine name" /></Field><Field label="Work center"><Input name="workCenter" placeholder="Assembly" /></Field><Field label="Status"><Input name="status" options={['AVAILABLE', 'MAINTENANCE', 'OFFLINE']} value="AVAILABLE" /></Field><Field label="Capacity / shift"><Input name="capacityPerShift" type="number" min="0.001" step="0.001" /></Field><Field label="Hourly cost"><Input name="hourlyCost" type="number" min="0" step="0.01" value="0" /></Field><Field label="Notes" wide><Input name="notes" type="textarea" /></Field></Form>}
+      {modal === 'worker' && <Form busy={busy} submit="Allocate worker" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); save(`/production/orders/${f.get('workOrderId')}/workers`, { userId: f.get('userId'), operationName: f.get('operationName'), shift: f.get('shift'), allocatedHours: f.get('allocatedHours') || undefined, startAt: f.get('startAt') || undefined, endAt: f.get('endAt') || undefined, notes: f.get('notes') }) }}><Field label="Work order"><Input name="workOrderId" options={orderOptions} required /></Field><Field label="Worker"><Input name="userId" options={(data.workers?.workers || []).map((w) => ({ value: w.id, label: `${w.name} · ${w.role.replaceAll('_', ' ')}` }))} required /></Field><Field label="Operation"><Input name="operationName" placeholder="Assembly" /></Field><Field label="Shift"><Input name="shift" options={['GENERAL', 'SHIFT_A', 'SHIFT_B', 'SITE']} value="GENERAL" /></Field><Field label="Allocated hours"><Input name="allocatedHours" type="number" min="0.01" step="0.25" /></Field><Field label="Start"><Input name="startAt" type="datetime-local" /></Field><Field label="End"><Input name="endAt" type="datetime-local" /></Field><Field label="Notes" wide><Input name="notes" type="textarea" /></Field></Form>}
+      {modal === 'inspection' && <Form busy={busy} submit="Save inspection" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); save('/quality/inspections', { workOrderId: f.get('workOrderId'), inspectedQuantity: f.get('inspectedQuantity'), acceptedQuantity: f.get('acceptedQuantity'), rejectedQuantity: f.get('rejectedQuantity'), measurements: f.get('measurements') ? { notes: f.get('measurements') } : undefined, evidenceNotes: f.get('evidenceNotes'), inspectedAt: f.get('inspectedAt') || undefined }) }}><Field label="Work order"><Input name="workOrderId" options={orderOptions} required /></Field><Field label="Inspected quantity"><Input name="inspectedQuantity" type="number" min="0.001" step="0.001" required /></Field><Field label="Accepted"><Input name="acceptedQuantity" type="number" min="0" step="0.001" required /></Field><Field label="Rejected"><Input name="rejectedQuantity" type="number" min="0" step="0.001" required /></Field><Field label="Measurements" wide><Input name="measurements" type="textarea" placeholder="Measurement notes or dimensions" /></Field><Field label="Evidence notes" wide><Input name="evidenceNotes" type="textarea" placeholder="Inspection notes" /></Field></Form>}
+      {modal === 'defect' && <Form busy={busy} submit="Record defect" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); save(`/quality/inspections/${f.get('inspectionId')}/defects`, { defectCode: f.get('defectCode'), category: f.get('category'), description: f.get('description'), severity: f.get('severity'), quantity: f.get('quantity'), disposition: f.get('disposition') }) }}><Field label="Inspection"><Input name="inspectionId" options={(data.inspections?.inspections || []).map((i) => ({ value: i.id, label: `${i.inspectionNo} · ${i.workOrder?.workOrderNo}` }))} required /></Field><Field label="Defect code"><Input name="defectCode" required placeholder="DEF-001" /></Field><Field label="Category"><Input name="category" required placeholder="Surface finish" /></Field><Field label="Severity"><Input name="severity" options={['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']} value="MEDIUM" /></Field><Field label="Quantity"><Input name="quantity" type="number" min="0.001" step="0.001" value="1" /></Field><Field label="Disposition"><Input name="disposition" placeholder="Rework / scrap" /></Field><Field label="Description" wide><Input name="description" type="textarea" /></Field></Form>}
+      {modal === 'rework' && <Form busy={busy} submit="Create rework order" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); save(`/quality/defects/${f.get('defectId')}/rework`, { quantity: f.get('quantity'), assignedToId: f.get('assignedToId') || undefined, reason: f.get('reason') }) }}><Field label="Defect"><Input name="defectId" options={(data.rework?.defects || []).filter((d) => !['RESOLVED', 'SCRAPPED'].includes(d.status)).map((d) => ({ value: d.id, label: `${d.defectCode} · ${d.category} (${d.quantity})` }))} required /></Field><Field label="Rework quantity"><Input name="quantity" type="number" min="0.001" step="0.001" required /></Field><Field label="Assign to"><Input name="assignedToId" options={(data.rework?.workers || []).map((w) => ({ value: w.id, label: w.name }))} /></Field><Field label="Reason" wide><Input name="reason" type="textarea" placeholder="Repair instructions" /></Field></Form>}
+      {modal === 'tracking' && <Form busy={busy} submit="Record output" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); save(`/production/orders/${f.get('workOrderId')}/track`, { quantity: f.get('quantity'), operationLogId: f.get('operationLogId') || undefined, operationName: f.get('operationName') || undefined, sequence: f.get('sequence'), machineId: f.get('machineId') || undefined, downtimeMinutes: f.get('downtimeMinutes') || 0, notes: f.get('notes') }) }}><Field label="Work order"><Input name="workOrderId" options={orderOptions} value={selectedOrder} required /></Field><Field label="Quantity produced"><Input name="quantity" type="number" min="0.001" step="0.001" required /></Field><Field label="BOM operation"><Input name="operationLogId" options={(data.tracking?.operationLogs || []).map((op) => ({ value: op.id, label: `${op.sequence}. ${op.operationName}` }))} /></Field><Field label="New operation"><Input name="operationName" placeholder="Only if not in the BOM route" /></Field><Field label="Sequence"><Input name="sequence" type="number" min="1" value="1" /></Field><Field label="Assigned machine"><Input name="machineId" options={(data.machines || []).filter((machine) => machine.status === 'AVAILABLE' || (data.tracking?.machineAssignments || []).some((assignment) => assignment.machineId === machine.id && !assignment.endAt)).map((machine) => ({ value: machine.id, label: `${machine.machineCode} · ${machine.name}` }))} /></Field><Field label="Downtime (minutes)"><Input name="downtimeMinutes" type="number" min="0" step="1" value="0" /></Field><Field label="Notes" wide><Input name="notes" type="textarea" /></Field></Form>}
+      {modal === 'assignMachine' && <Form busy={busy} submit="Assign machine" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); save(`/production/orders/${f.get('workOrderId')}/machines`, { machineId: f.get('machineId'), startAt: f.get('startAt') || undefined, endAt: f.get('endAt') || undefined, notes: f.get('notes') }) }}><Field label="Work order"><Input name="workOrderId" options={orderOptions} required /></Field><Field label="Available machine"><Input name="machineId" options={(data.machines || []).filter((m) => m.status === 'AVAILABLE').map((m) => ({ value: m.id, label: `${m.machineCode} · ${m.name}` }))} required /></Field><Field label="Start"><Input name="startAt" type="datetime-local" /></Field><Field label="End"><Input name="endAt" type="datetime-local" /></Field><Field label="Notes" wide><Input name="notes" type="textarea" /></Field></Form>}
+      {modal === 'consumption' && <Form busy={busy} submit="Record consumption" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); save(`/production/orders/${f.get('workOrderId')}/consume-material`, { items: [{ workOrderItemId: f.get('workOrderItemId'), quantity: f.get('quantity'), notes: f.get('notes') }] }) }}><Field label="Work order"><Input name="workOrderId" options={orderOptions} value={selectedOrder} required /></Field><Field label="Material item"><Input name="workOrderItemId" options={(data.materials?.items || []).map((item) => ({ value: item.id, label: `${item.product?.sku} · ${item.product?.name} (issued ${item.issuedQuantity})` }))} required /></Field><Field label="Consumed quantity"><Input name="quantity" type="number" min="0.001" step="0.001" required /></Field><Field label="Notes" wide><Input name="notes" type="textarea" /></Field></Form>}
+      {modal === 'bom' && <Form busy={busy} submit="Create BOM revision" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const parseRows = (raw, operation = false) => raw.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => { const [a, b, c, d] = line.split(',').map((v) => v.trim()); return operation ? { sequence: Number(a), name: b, workCenter: c, standardMinutes: d ? Number(d) : undefined } : { componentProductId: Number(a), quantity: Number(b), scrapPercent: Number(c || 0) } }); try { save('/production/bom', { productId: f.get('productId'), revision: f.get('revision'), notes: f.get('notes'), materialCost: f.get('materialCost') || 0, laborCost: f.get('laborCost') || 0, overheadCost: f.get('overheadCost') || 0, items: parseRows(f.get('items')), operations: parseRows(f.get('operations'), true) }) } catch { setError('Check BOM rows. Enter comma-separated values on each line.') } }}><Field label="Manufactured product"><Input name="productId" options={(data.products || []).map((product) => ({ value: product.id, label: `${product.sku} · ${product.name}` }))} required /></Field><Field label="Revision"><Input name="revision" required placeholder="R1" /></Field><Field label="Material cost"><Input name="materialCost" type="number" min="0" step="0.01" /></Field><Field label="Labor cost"><Input name="laborCost" type="number" min="0" step="0.01" /></Field><Field label="Overhead cost"><Input name="overheadCost" type="number" min="0" step="0.01" /></Field><Field label="Components" wide><Input name="items" type="textarea" placeholder={'One per line: product ID, quantity, scrap %\nExample: 12, 2.5, 3'} /></Field><Field label="Routing operations" wide><Input name="operations" type="textarea" placeholder={'One per line: sequence, name, work center, standard minutes\nExample: 1, Cutting, CNC, 25'} /></Field><Field label="Notes" wide><Input name="notes" type="textarea" /></Field></Form>}
+    </Modal>}
+  </div>
+}
+
+async function fetchPageData(page, selectedOrder, params = {}) {
+  if (page === 'dashboard') return request('/production/dashboard')
+  if (page === 'orders' || page === 'work-orders') return request('/production/orders?limit=100')
+  if (page === 'order-detail') return selectedOrder ? request(`/production/orders/${selectedOrder}`) : null
+  if (page === 'planning') return request(`/production/planning/dashboard${params.from && params.to ? `?from=${encodeURIComponent(params.from)}&to=${encodeURIComponent(params.to)}` : ''}`)
+  if (page === 'tracking') return selectedOrder ? request(`/production/orders/${selectedOrder}/tracking`) : request('/production/orders?limit=100')
+  if (page === 'workers') { const [allocations, workers, orders] = await Promise.all([request('/production/allocations'), request('/production/workforce'), request('/production/orders?limit=100')]); return { allocations, workers, orders: orders.orders } }
+  if (page === 'sales-orders') return request('/production/sales-orders')
+  if (page === 'products') return request('/production/products')
+  if (page === 'machines') return request('/production/machines')
+  if (page === 'materials') return selectedOrder ? request(`/production/orders/${selectedOrder}/material-consumption`) : request('/production/orders?limit=100')
+  if (page === 'complete') return request('/production/orders?limit=100')
+  if (page === 'inspections') return request('/quality/inspections?limit=100')
+  if (page === 'defects') { const [defects, inspections] = await Promise.all([request('/quality/defects?limit=100'), request('/quality/inspections?limit=100')]); return { ...defects, inspections: inspections.inspections } }
+  if (page === 'rework') { const [rework, defects, workers] = await Promise.all([request('/quality/rework'), request('/quality/defects?limit=100'), request('/production/workforce')]); return { rework, defects: defects.defects, workers } }
+  if (page === 'reports') { const query = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, value]) => value))); return request(`/quality/reports${query.size ? `?${query}` : ''}`) }
+  if (page === 'bom') { const [boms, stats] = await Promise.all([request('/production/bom'), request('/production/bom/stats')]); return { boms, stats } }
+  return {}
+}
+
+function Dashboard({ data, onNavigate, onRefresh }) {
+  const wo = data?.workOrders || {}; const quality = data?.quality || {}; const bom = data?.bom || {}
+  const statuses = Object.entries(wo.byStatus || {})
+  const inspectionCount = Object.values(quality.byStatus || {}).reduce((total, count) => total + Number(count), 0)
+  const pendingCount = ['DRAFT', 'PLANNED', 'RELEASED', 'MATERIAL_HOLD'].reduce((total, status) => total + Number(wo.byStatus?.[status] || 0), 0)
+  return <>
+    <PageHeading kicker="MONDAY · OPERATIONS OVERVIEW" title="Production & quality" description="A live view of your factory floor, order progress, and product quality." action="Refresh data" onAction={onRefresh} />
+    <div className="metric-grid dashboard-metrics">
+      <Metric label="Total production orders" value={wo.total ?? '—'} note="All work orders" icon="▤" tone="blue" />
+      <Metric label="In progress" value={wo.byStatus?.IN_PROGRESS || 0} note="Currently being manufactured" icon="◷" tone="violet" />
+      <Metric label="Pending orders" value={pendingCount} note="Awaiting production" icon="▦" tone="amber" />
+      <Metric label="Completed orders" value={wo.byStatus?.COMPLETED || 0} note="Finished production orders" icon="✓" tone="green" />
+      <Metric label="Planned quantity" value={Number(wo.planned || 0).toLocaleString('en-IN')} note="Total target quantity" icon="▤" />
+      <Metric label="Good quantity" value={Number(wo.produced || 0).toLocaleString('en-IN')} note="Accepted production quantity" icon="✓" tone="green" />
+      <Metric label="Rejected quantity" value={Number(wo.rejected || 0).toLocaleString('en-IN')} note="Quantity rejected" icon="⚑" tone="red" />
+      <Metric label="Quality inspections" value={inspectionCount} note={`${Number(quality.byStatus?.PENDING || 0)} pending · ${Number(quality.byStatus?.HOLD || 0)} on hold`} icon="⌕" tone="amber" />
+      <Metric label="Material availability" value={Number(data?.inventory?.available || 0).toLocaleString('en-IN')} note={`${Number(data?.inventory?.reserved || 0).toLocaleString('en-IN')} units reserved`} icon="▥" tone="violet" />
+      <Metric label="Delayed orders" value={wo.delayed ?? 0} note="Past planned completion date" icon="!" tone="red" />
+    </div>
+    <div className="dashboard-grid">
+      <Section title="Production status" subtitle="Work orders by current stage" action="View orders" onAction={() => onNavigate('orders')} className="status-panel">
+        {statuses.length ? <div className="status-bars">{statuses.map(([label, count]) => <div className="bar-row" key={label}><div className="bar-label"><span>{label.replaceAll('_', ' ')}</span><strong>{count}</strong></div><div className="bar-track"><i style={{ width: `${Math.max(4, count / Math.max(1, wo.total) * 100)}%` }} /></div></div>)}</div> : <Empty text="Create a work order to start tracking production." />}
+      </Section>
+      <Section title="Quality at a glance" subtitle="Inspection yield and defect signals" action="Open quality" onAction={() => onNavigate('reports')} className="quality-panel">
+        <div className="yield-visual"><div className="yield-ring" style={{ '--yield': `${quality.passRate || 0}%` }}><div><strong>{quality.passRate ?? 0}%</strong><small>pass rate</small></div></div><div className="yield-legend"><span><i className="dot green-dot" />Accepted <b>{Number(quality.accepted || 0).toLocaleString('en-IN')}</b></span><span><i className="dot red-dot" />Rejected <b>{Number(quality.rejected || 0).toLocaleString('en-IN')}</b></span><span><i className="dot blue-dot" />Inspected <b>{Number(quality.inspected || 0).toLocaleString('en-IN')}</b></span></div></div>
+        <div className="quality-callout"><span>↗</span><div><strong>{Object.values(bom.byStatus || {}).reduce((a, b) => a + b, 0)} BOM revisions</strong><small>Keep released build recipes current</small></div><button onClick={() => onNavigate('bom')}>→</button></div>
+      </Section>
+      <Section title="Active production" subtitle="The next orders on your floor" action="All work orders" onAction={() => onNavigate('work-orders')} className="active-panel">
+        <Table columns={[{ key: 'workOrderNo', label: 'Work order' }, { key: 'salesOrder.orderNumber', label: 'Sales order', path: 'salesOrder.orderNumber' }, { key: 'status', label: 'Status', render: (row) => <Status value={row.status} /> }, { key: 'progress', label: 'Progress', render: (row) => <Progress value={row.producedQuantity} max={row.plannedQuantity} /> }]} rows={wo.active || []} emptyText="No active work orders. Plan an order to get started." />
+      </Section>
+      <Section title="Quality queue" subtitle="Inspections requiring attention" action="View inspections" onAction={() => onNavigate('inspections')} className="queue-panel">
+        {(quality.pendingInspections || []).length ? <div className="queue-list">{quality.pendingInspections.map((item) => <div className="queue-item" key={item.id}><span className="queue-icon">⌕</span><div><strong>{item.inspectionNo}</strong><small>{item.workOrder?.workOrderNo} · {item.workOrder?.salesOrder?.orderNumber}</small></div><Status value={item.status} /></div>)}</div> : <Empty text="There are no inspections waiting in the quality queue." />}
+      </Section>
+    </div>
+  </>
+}
+function Progress({ value = 0, max = 0 }) { const n = max ? Math.min(100, Number(value) / Number(max) * 100) : 0; return <div className="progress"><span><i style={{ width: `${n}%` }} /></span><small>{n.toFixed(0)}%</small></div> }
+function OrderList({ page, result, orders, filters, setFilters, onCreate, onSelect, onEdit, onTrack, onComplete }) {
+  const title = page === 'orders' ? 'Production orders' : 'Work orders'
+  const list = orders.filter((order) => page !== 'work-orders' || !['COMPLETED', 'CANCELLED'].includes(order.status))
+  return <><PageHeading title={title} description={page === 'orders' ? 'Convert confirmed customer demand into planned factory work.' : 'Review work in progress, material readiness, and completion status.'} action="New production order" onAction={onCreate} /><div className="filter-row"><div className="search-box"><Icon>⌕</Icon><input value={filters.query} onChange={(e) => setFilters((v) => ({ ...v, query: e.target.value }))} placeholder="Search work order or customer" /></div><select value={filters.status} onChange={(e) => setFilters((v) => ({ ...v, status: e.target.value }))}><option value="">All statuses</option>{['DRAFT', 'PLANNED', 'RELEASED', 'MATERIAL_HOLD', 'IN_PROGRESS', 'QC_HOLD', 'COMPLETED', 'CANCELLED'].map((s) => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}</select><span className="results-count">{result?.total ?? list.length} records</span></div><Section title="Order register" subtitle="Production schedule and order fulfillment" className="full-panel"><Table columns={[{ key: 'workOrderNo', label: 'Work order no.', render: (r) => <button className="text-link" onClick={() => onSelect(r.id)}>{r.workOrderNo}</button> }, { key: 'salesOrder.orderNumber', label: 'Sales order', path: 'salesOrder.orderNumber' }, { key: 'product', label: 'Product / BOM revision', render: (r) => <span>{r.bomRevision?.product?.name || r.salesOrder?.items?.map((item) => item.product?.name).filter(Boolean).join(', ') || '—'}{r.bomRevision?.revision ? ` · Rev ${r.bomRevision.revision}` : ''}</span> }, { key: 'plannedQuantity', label: 'Planned qty' }, { key: 'goodQuantity', label: 'Good qty' }, { key: 'rejectedQuantity', label: 'Rejected qty' }, { key: 'plannedStart', label: 'Planned start', render: (r) => fmtDate(r.plannedStart) }, { key: 'plannedEnd', label: 'Planned end', render: (r) => fmtDate(r.plannedEnd) }, { key: 'priority', label: 'Priority', render: (r) => <span className={`priority priority-${r.priority?.toLowerCase()}`}>{r.priority}</span> }, { key: 'status', label: 'Status', render: (r) => <Status value={r.status} /> }, { key: 'createdBy.name', label: 'Created by', path: 'createdBy.name' }, { key: 'actions', label: 'Actions', render: (r) => <div className="row-actions"><button title="View order details" onClick={() => onSelect(r.id)}>View</button>{['DRAFT', 'PLANNED'].includes(r.status) && <button title="Edit production plan" onClick={() => onEdit(r)}>Edit</button>}<button title="Track production" onClick={() => onTrack(r.id)}>Track</button>{r.status === 'IN_PROGRESS' || r.status === 'QC_HOLD' ? <button title="Complete work order" onClick={() => onComplete(r.id)}>Complete</button> : null}</div> }]} rows={list} emptyText={errorText(result)} /></Section></>
+}
+function OrderDetails({ result, onBack, onTrack }) {
+  if (!result) return <><PageHeading title="Work order details" description="Loading order information…" action="Back to orders" onAction={onBack} /><Empty title="Order details unavailable" text="Select a work order from the register to view its details." /></>
+  const planned = Number(result.plannedQuantity || 0)
+  const good = Number(result.goodQuantity || 0)
+  const rejected = Number(result.rejectedQuantity || 0)
+  const remaining = Math.max(0, planned - good - rejected)
+  const progress = planned ? Math.min(100, ((good + rejected) / planned) * 100) : 0
+  const productNames = result.bomRevision?.product?.name || result.salesOrder?.items?.map((item) => item.product?.name).filter(Boolean).join(', ')
+  return <>
+    <PageHeading kicker="PRODUCTION ORDER" title={result.workOrderNo} description="Work order overview and current production progress." action="Back to orders" onAction={onBack} />
+    <Section title="Order overview" subtitle="Order identity, schedule, and current status">
+      <div className="order-detail-grid">
+        <Detail label="Work order number" value={result.workOrderNo} />
+        <Detail label="Sales order" value={result.salesOrder?.orderNumber} />
+        <Detail label="Product" value={productNames} />
+        <Detail label="BOM revision" value={result.bomRevision?.revision ? `Rev ${result.bomRevision.revision}` : '—'} />
+        <Detail label="Production status" value={<Status value={result.status} />} />
+        <Detail label="Priority" value={<span className={`priority priority-${String(result.priority || '').toLowerCase()}`}>{result.priority || '—'}</span>} />
+        <Detail label="Planned start" value={fmtDate(result.plannedStart)} />
+        <Detail label="Planned completion" value={fmtDate(result.plannedEnd)} />
+        <Detail label="Actual start" value={fmtDate(result.actualStart)} />
+        <Detail label="Actual completion" value={fmtDate(result.actualEnd)} />
+      </div>
+    </Section>
+    <Section title="Production progress" subtitle="Planned output versus accepted and rejected quantities">
+      <div className="order-detail-grid quantity-grid">
+        <Detail label="Planned quantity" value={planned.toLocaleString('en-IN')} />
+        <Detail label="Good quantity" value={good.toLocaleString('en-IN')} />
+        <Detail label="Rejected quantity" value={rejected.toLocaleString('en-IN')} />
+        <Detail label="Remaining quantity" value={remaining.toLocaleString('en-IN')} />
+      </div>
+      <div className="detail-progress"><div><span>Production progress</span><strong>{progress.toFixed(0)}%</strong></div><Progress value={good + rejected} max={planned} /></div>
+    </Section>
+    <Section title="Quality inspections" subtitle="Inspection outcomes recorded against this order">
+      <Table columns={[{ key: 'inspectionNo', label: 'Inspection' }, { key: 'inspectedAt', label: 'Inspected at', render: (r) => fmtDateTime(r.inspectedAt) }, { key: 'inspectedQuantity', label: 'Inspected' }, { key: 'acceptedQuantity', label: 'Accepted' }, { key: 'rejectedQuantity', label: 'Rejected' }, { key: 'status', label: 'Status', render: (r) => <Status value={r.status} /> }]} rows={result.inspections || []} emptyText="No quality inspections have been recorded for this order." />
+    </Section>
+    <div className="detail-actions"><button className="button primary" onClick={onTrack}>Open production tracking</button></div>
+  </>
+}
+function Detail({ label, value }) { return <div className="detail-field"><span>{label}</span><strong>{value || '—'}</strong></div> }
+function errorText(result) { return result === null ? 'Unable to load orders. Check the API connection.' : 'No production orders match the current filters.' }
+function Planning({ result, onRefresh, onCreate, onUpdate, onApprovalAction }) {
+  const now = new Date()
+  const asDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  const [range, setRange] = useState({ from: asDate(new Date(now.getFullYear(), now.getMonth(), 1)), to: asDate(new Date(now.getFullYear(), now.getMonth(), 31)) })
+  const plan = result || {}
+  const dateValue = (value) => value ? new Date(value).toISOString().slice(0, 10) : ''
+  const requestRejection = (id) => {
+    const notes = window.prompt('Reason for rejecting this production plan:')
+    if (notes?.trim()) onApprovalAction(id, 'REJECT', notes.trim())
+  }
+  return <>
+    <PageHeading title="Production planning dashboard" description="Plan demand, balance factory capacity, manage due dates, and approve production plans." action="New production plan" onAction={onCreate} />
+    <div className="report-filter"><label>Schedule from<input type="date" value={range.from} onChange={(e) => setRange((v) => ({ ...v, from: e.target.value }))} /></label><label>Through<input type="date" value={range.to} onChange={(e) => setRange((v) => ({ ...v, to: e.target.value }))} /></label><button className="button subtle" onClick={() => onRefresh(range)}>Refresh plan</button></div>
+    <div className="metric-grid compact"><Metric label="Scheduled orders" value={plan.summary?.scheduledOrders ?? 0} note="Over selected planning window" icon="▦" /><Metric label="Open demand" value={plan.demand?.totalRemaining ?? 0} note="Units not yet planned" icon="↗" tone="violet" /><Metric label="Overdue deadlines" value={plan.summary?.overdue ?? 0} note="Past due date, still open" icon="◷" tone="amber" /><Metric label="Awaiting approval" value={plan.summary?.pendingApprovals ?? 0} note="Plans submitted for review" icon="✓" tone="green" /></div>
+    <Section title="Production schedule management" subtitle="Adjust planned dates and order priority. Schedule changes to an approved plan require a fresh approval." className="full-panel"><Table columns={[{ key: 'workOrderNo', label: 'Work order' }, { key: 'salesOrder.orderNumber', label: 'Sales order', path: 'salesOrder.orderNumber' }, { key: 'customer', label: 'Customer', render: (r) => r.salesOrder?.customer?.name || '—' }, { key: 'plannedStart', label: 'Start date', render: (r) => <input aria-label={`Start date ${r.workOrderNo}`} type="date" defaultValue={dateValue(r.plannedStart)} onBlur={(e) => { if (e.target.value !== dateValue(r.plannedStart)) onUpdate(r.id, { plannedStart: e.target.value || null }) }} disabled={!['DRAFT', 'PLANNED'].includes(r.status)} /> }, { key: 'plannedEnd', label: 'Deadline', render: (r) => <input aria-label={`Deadline ${r.workOrderNo}`} type="date" defaultValue={dateValue(r.plannedEnd)} onBlur={(e) => { if (e.target.value !== dateValue(r.plannedEnd)) onUpdate(r.id, { plannedEnd: e.target.value || null }) }} disabled={!['DRAFT', 'PLANNED'].includes(r.status)} /> }, { key: 'priority', label: 'Priority', render: (r) => <select aria-label={`Priority ${r.workOrderNo}`} value={r.priority} onChange={(e) => onUpdate(r.id, { priority: e.target.value })} disabled={!['DRAFT', 'PLANNED'].includes(r.status)}>{['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map((value) => <option key={value}>{value}</option>)}</select> }, { key: 'planApprovalStatus', label: 'Plan approval', render: (r) => <Status value={r.planApprovalStatus} /> }, { key: 'status', label: 'Production status', render: (r) => <Status value={r.status} /> }]} rows={plan.orders || []} emptyText="No scheduled orders in this date window. Create an order and set its planned start and deadline." /></Section>
+    <Section title="Plan approval queue" subtitle="Schedule or revise draft dates, submit plans, approve pending plans, or return them with a reason."><Table columns={[{ key: 'workOrderNo', label: 'Work order' }, { key: 'salesOrder.orderNumber', label: 'Sales order', path: 'salesOrder.orderNumber' }, { key: 'plannedQuantity', label: 'Planned quantity' }, { key: 'plannedStart', label: 'Start date', render: (r) => <input aria-label={`Approval start ${r.workOrderNo}`} type="date" defaultValue={dateValue(r.plannedStart)} onBlur={(e) => { if (e.target.value !== dateValue(r.plannedStart)) onUpdate(r.id, { plannedStart: e.target.value || null }) }} /> }, { key: 'plannedEnd', label: 'Deadline', render: (r) => <input aria-label={`Approval deadline ${r.workOrderNo}`} type="date" defaultValue={dateValue(r.plannedEnd)} onBlur={(e) => { if (e.target.value !== dateValue(r.plannedEnd)) onUpdate(r.id, { plannedEnd: e.target.value || null }) }} /> }, { key: 'priority', label: 'Priority', render: (r) => <select aria-label={`Approval priority ${r.workOrderNo}`} value={r.priority} onChange={(e) => onUpdate(r.id, { priority: e.target.value })}>{['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map((value) => <option key={value}>{value}</option>)}</select> }, { key: 'planApprovalStatus', label: 'Approval', render: (r) => <Status value={r.planApprovalStatus} /> }, { key: 'planApprovalNotes', label: 'Review notes' }, { key: 'actions', label: '', render: (r) => <div className="row-actions">{['DRAFT', 'REJECTED'].includes(r.planApprovalStatus) && <button onClick={() => onApprovalAction(r.id, 'SUBMIT')}>Submit</button>}{r.planApprovalStatus === 'PENDING' && <><button className="complete-button" onClick={() => onApprovalAction(r.id, 'APPROVE')}>Approve</button><button className="row-danger" onClick={() => requestRejection(r.id)}>Reject</button></>}</div> }]} rows={plan.approvalQueue || []} emptyText="No production plans need review." /></Section>
+    <div className="report-grid"><Section title="Demand-based production forecast" subtitle={`Confirmed manufactured-product demand due ${fmtDate(plan.demand?.range?.from)} to ${fmtDate(plan.demand?.range?.to)}, less available stock and planned output.`}><Table columns={[{ key: 'sku', label: 'SKU' }, { key: 'product', label: 'Product' }, { key: 'demand', label: 'Demand' }, { key: 'availableStock', label: 'Available stock' }, { key: 'planned', label: 'Planned' }, { key: 'remaining', label: 'Remaining to plan' }, { key: 'unit', label: 'Unit' }]} rows={plan.demand?.products || []} emptyText="No confirmed manufactured-product demand is due during this period." /></Section>
+    <Section title="Production capacity planning" subtitle="Assigned output compared with capacity per shift multiplied by calendar days in the selected window (one shift per day)."><Table columns={[{ key: 'machineCode', label: 'Machine' }, { key: 'workCenter', label: 'Work center' }, { key: 'capacityPerShift', label: 'Capacity / shift' }, { key: 'availableCapacity', label: 'Window capacity' }, { key: 'plannedLoad', label: 'Assigned load' }, { key: 'utilizationPercent', label: 'Utilization', render: (r) => r.utilizationPercent === null ? 'Set capacity' : `${r.utilizationPercent}%` }, { key: 'status', label: 'Status', render: (r) => <Status value={r.status} /> }]} rows={plan.capacity?.machines || []} emptyText="Register machines with capacity-per-shift values to plan factory capacity." /></Section></div>
+    <Section title="Production calendar" subtitle={`Daily order view for ${fmtDate(plan.range?.from)} to ${fmtDate(plan.range?.to)}.`}><Table columns={[{ key: 'date', label: 'Date', render: (r) => fmtDate(r.date) }, { key: 'count', label: 'Orders' }, { key: 'entries', label: 'Schedule', render: (r) => r.entries.map((entry) => `${entry.workOrderNo} (${entry.priority})`).join(' · ') }]} rows={plan.calendar?.days || []} emptyText="No production dates fall within this calendar window." /></Section>
+  </>
+}
+function Tracking({ result, orders, selected, setSelected, onTrack, onAssignMachine, onOperationStatus, onRefresh }) {
+  const wo = result?.workOrderNo ? result : null
+  return <><PageHeading title="Production tracking" description="Record output by operation and see progress in real time." action="Record output" onAction={onTrack} /><div className="filter-row"><label className="inline-select">Work order<select value={selected} onChange={(e) => setSelected(e.target.value)}><option value="">Choose a work order…</option>{orders.map((o) => <option value={o.id} key={o.id}>{o.workOrderNo} · {o.salesOrder?.orderNumber}</option>)}</select></label><div className="row-actions"><button className="button subtle" onClick={onAssignMachine}>＋ Assign machine</button><button className="button subtle" onClick={onRefresh}>↻ Refresh</button></div></div>{wo ? <><div className="metric-grid compact"><Metric label="Planned quantity" value={Number(wo.plannedQuantity).toLocaleString('en-IN')} note={wo.workOrderNo} icon="▤" /><Metric label="Produced" value={Number(wo.producedQuantity).toLocaleString('en-IN')} note={`${Math.round(Number(wo.producedQuantity) / Number(wo.plannedQuantity) * 100 || 0)}% complete`} icon="▥" tone="violet" /><Metric label="Accepted" value={Number(wo.goodQuantity).toLocaleString('en-IN')} note="Passed quality inspection" icon="✓" tone="green" /><Metric label="Rejected" value={Number(wo.rejectedQuantity).toLocaleString('en-IN')} note="Requires disposition or rework" icon="⚑" tone="amber" /></div><Section title="Operation log" subtitle="Production entries, run time, and operator notes"><Table columns={[{ key: 'recordedAt', label: 'Recorded', render: (r) => fmtDateTime(r.recordedAt) }, { key: 'operationLog.operationName', label: 'Operation', path: 'operationLog.operationName' }, { key: 'quantity', label: 'Quantity' }, { key: 'downtimeMinutes', label: 'Downtime (min)' }, { key: 'recordedBy.name', label: 'Recorded by', path: 'recordedBy.name' }, { key: 'notes', label: 'Notes' }]} rows={wo.productionEntries || []} emptyText="No production output has been reported for this work order." /></Section><Section title="Operations" subtitle="Routing and machine activity"><Table columns={[{ key: 'sequence', label: '#' }, { key: 'operationName', label: 'Operation' }, { key: 'machine.name', label: 'Machine', path: 'machine.name' }, { key: 'status', label: 'Status', render: (r) => <Status value={r.status} /> }, { key: 'startedAt', label: 'Started', render: (r) => fmtDateTime(r.startedAt) }, { key: 'entries', label: 'Entries', render: (r) => r.entries?.length || 0 }, { key: 'actions', label: 'Update', render: (r) => <select aria-label={`Update ${r.operationName}`} value={r.status} onChange={(e) => onOperationStatus(r.id, e.target.value)}>{['PENDING', 'IN_PROGRESS', 'BLOCKED', 'COMPLETED'].map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}</select> }]} rows={wo.operationLogs || []} /></Section></> : <Empty title="Select a work order" text="Choose an order above to view its production entries and operations." />}</>
+}
+function Workers({ result, workers, orders, onAllocate, onRefresh, onRemove }) {
+  return <><PageHeading title="Worker allocation" description="Assign production operators to work orders and avoid overlapping shifts." action="Allocate worker" onAction={onAllocate} /><div className="metric-grid compact"><Metric label="Active workers" value={workers.length} note="Production, engineering, and quality team" icon="♙" /><Metric label="Allocations" value={result?.allocations?.length || 0} note="Scheduled work assignments" icon="▤" tone="violet" /><Metric label="Open work orders" value={orders.filter((o) => !['COMPLETED', 'CANCELLED'].includes(o.status)).length} note="Available to staff" icon="⚙" tone="green" /></div><Section title="Allocation schedule" subtitle="Worker, operation, and assigned shift" action="Refresh" onAction={onRefresh}><Table columns={[{ key: 'user.name', label: 'Worker', path: 'user.name' }, { key: 'user.employeeCode', label: 'Employee ID', path: 'user.employeeCode' }, { key: 'workOrder.workOrderNo', label: 'Work order', path: 'workOrder.workOrderNo' }, { key: 'operationName', label: 'Operation' }, { key: 'shift', label: 'Shift' }, { key: 'allocatedHours', label: 'Hours' }, { key: 'startAt', label: 'Start', render: (r) => fmtDateTime(r.startAt) }, { key: 'actions', label: '', render: (r) => <button className="row-danger" onClick={() => onRemove(r.id)}>Remove</button> }]} rows={result?.allocations || []} emptyText="No workforce allocations yet." /></Section></>
+}
+function Machines({ result, onAdd, onRefresh }) {
+  const available = (result || []).filter((m) => m.status === 'AVAILABLE').length
+  return <><PageHeading title="Machine management" description="Manage work centers, availability, and production equipment." action="Add machine" onAction={onAdd} /><div className="metric-grid compact"><Metric label="Registered machines" value={result?.length || 0} note="Factory equipment register" icon="⚙" /><Metric label="Available" value={available} note="Ready for an assignment" icon="✓" tone="green" /><Metric label="Maintenance / offline" value={(result || []).filter((m) => ['MAINTENANCE', 'OFFLINE'].includes(m.status)).length} note="Unavailable for production" icon="◷" tone="amber" /></div><Section title="Machine register" subtitle="Equipment and work center status" action="Refresh" onAction={onRefresh}><Table columns={[{ key: 'machineCode', label: 'Machine ID' }, { key: 'name', label: 'Machine' }, { key: 'workCenter', label: 'Work center' }, { key: 'status', label: 'Status', render: (r) => <Status value={r.status} /> }, { key: 'capacityPerShift', label: 'Capacity / shift' }, { key: 'hourlyCost', label: 'Hourly cost', render: (r) => `₹${Number(r.hourlyCost || 0).toLocaleString('en-IN')}` }, { key: '_count.assignments', label: 'Assignments', path: '_count.assignments' }]} rows={result || []} emptyText="No machines registered. Add your first machine to start assigning factory capacity." /></Section></>
+}
+function Materials({ result, orders, selected, setSelected, onConsume, onRefresh }) {
+  const wo = result?.workOrderNo ? result : null
+  return <><PageHeading title="Material consumption" description="Compare issued components with actual material used on each order." action={wo ? 'Record consumption' : undefined} onAction={onConsume} /><div className="filter-row"><label className="inline-select">Work order<select value={selected} onChange={(e) => setSelected(e.target.value)}><option value="">Choose a work order…</option>{orders.map((o) => <option value={o.id} key={o.id}>{o.workOrderNo} · {o.salesOrder?.orderNumber}</option>)}</select></label><button className="button subtle" onClick={onRefresh}>↻ Refresh</button></div>{wo ? <Section title="Component usage" subtitle={`${wo.workOrderNo} · planned versus issued and consumed`}><Table columns={[{ key: 'id', label: 'Item ID' }, { key: 'product.sku', label: 'SKU', path: 'product.sku' }, { key: 'product.name', label: 'Component', path: 'product.name' }, { key: 'plannedQuantity', label: 'Planned' }, { key: 'issuedQuantity', label: 'Issued' }, { key: 'consumedQuantity', label: 'Consumed' }, { key: 'remaining', label: 'Issued balance', render: (r) => (Number(r.issuedQuantity) - Number(r.consumedQuantity)).toFixed(3) }, { key: 'consumptions', label: 'Entries', render: (r) => r.consumptions?.length || 0 }]} rows={wo.items || []} emptyText="This work order has no BOM component lines. Add a released BOM before issuing materials." /></Section> : <Empty title="Select a work order" text="Choose a work order to review and record material consumption." />}</>
+}
+function Completion({ orders, onComplete, onOpenTracking }) {
+  const ready = orders.filter((o) => ['IN_PROGRESS', 'QC_HOLD'].includes(o.status))
+  return <><PageHeading title="Production completion" description="Close an order after planned output is reported, inspected, and all defects are resolved." /><div className="callout-info"><Icon>i</Icon><div><strong>Completion updates finished goods inventory</strong><p>The backend checks output quantity, inspection totals, and open defects before completing an order.</p></div></div><Section title="Ready for completion review" subtitle="Complete only orders that have passed production and quality gates"><Table columns={[{ key: 'workOrderNo', label: 'Work order' }, { key: 'salesOrder.orderNumber', label: 'Sales order', path: 'salesOrder.orderNumber' }, { key: 'plannedQuantity', label: 'Planned' }, { key: 'producedQuantity', label: 'Produced' }, { key: 'goodQuantity', label: 'Accepted' }, { key: 'rejectedQuantity', label: 'Rejected' }, { key: 'status', label: 'Status', render: (r) => <Status value={r.status} /> }, { key: 'actions', label: 'Actions', render: (r) => <div className="row-actions"><button onClick={() => onOpenTracking(r.id)}>View tracking</button><button className="complete-button" onClick={() => onComplete(r.id)}>Complete</button></div> }]} rows={ready} emptyText="No work orders are ready for completion review." /></Section></>
+}
+function Inspections({ result, onAdd, onRelease }) {
+  return <><PageHeading kicker="QUALITY ASSURANCE" title="Quality inspections" description="Record incoming and in-process inspection results and release accepted output." action="New inspection" onAction={onAdd} /><div className="metric-grid compact"><Metric label="Inspections" value={result?.total || 0} note="All inspection records" icon="⌕" /><Metric label="Inspected units" value={Number((result?.inspections || []).reduce((s, r) => s + Number(r.inspectedQuantity), 0)).toLocaleString('en-IN')} note="Across current register" icon="▤" tone="blue" /><Metric label="Accepted units" value={Number((result?.inspections || []).reduce((s, r) => s + Number(r.acceptedQuantity), 0)).toLocaleString('en-IN')} note="Ready for finished goods" icon="✓" tone="green" /></div><Section title="Inspection register" subtitle="Acceptance, rejection, measurements, and disposition"><Table columns={[{ key: 'inspectionNo', label: 'Inspection' }, { key: 'workOrder.workOrderNo', label: 'Work order', path: 'workOrder.workOrderNo' }, { key: 'inspectedAt', label: 'Inspected at', render: (r) => fmtDateTime(r.inspectedAt) }, { key: 'inspectedQuantity', label: 'Inspected' }, { key: 'acceptedQuantity', label: 'Accepted' }, { key: 'rejectedQuantity', label: 'Rejected' }, { key: 'status', label: 'Result', render: (r) => <Status value={r.status} /> }, { key: 'evidenceNotes', label: 'Notes' }, { key: 'actions', label: '', render: (r) => ['PASS', 'HOLD'].includes(r.status) && <button className="complete-button" onClick={() => onRelease(r.id)}>Release</button> }]} rows={result?.inspections || []} emptyText="No inspections found. Record the first quality result for a work order." /></Section></>
+}
+function Defects({ result, inspections, onAdd, onUpdate }) {
+  return <><PageHeading kicker="QUALITY ASSURANCE" title="Defect register" description="Classify nonconformances, assign severity, and track disposition through resolution." action="Log a defect" onAction={onAdd} /><div className="metric-grid compact"><Metric label="Open defects" value={(result?.defects || []).filter((d) => ['OPEN', 'IN_REWORK'].includes(d.status)).length} note="Awaiting resolution" icon="⚑" tone="red" /><Metric label="Critical severity" value={(result?.defects || []).filter((d) => d.severity === 'CRITICAL').length} note="Requires immediate action" icon="!" tone="amber" /><Metric label="Total rejected qty" value={(result?.defects || []).reduce((s, d) => s + Number(d.quantity), 0)} note="Linked to inspections" icon="▥" /></div><Section title="Defect records" subtitle={`${inspections.length} inspection records available for linking`}><Table columns={[{ key: 'defectCode', label: 'Defect ID' }, { key: 'category', label: 'Category' }, { key: 'inspection.workOrder.workOrderNo', label: 'Work order', path: 'inspection.workOrder.workOrderNo' }, { key: 'severity', label: 'Severity', render: (r) => <span className={`priority priority-${r.severity?.toLowerCase()}`}>{r.severity}</span> }, { key: 'quantity', label: 'Quantity' }, { key: 'status', label: 'Status', render: (r) => <Status value={r.status} /> }, { key: 'disposition', label: 'Disposition' }, { key: 'actions', label: '', render: (r) => <div className="row-actions">{r.status === 'OPEN' && <button onClick={() => onUpdate(r.id, 'SCRAPPED')}>Scrap</button>}{r.status === 'IN_REWORK' && <button onClick={() => onUpdate(r.id, 'OPEN')}>Reopen</button>}</div> }]} rows={result?.defects || []} emptyText="No defects recorded." /></Section></>
+}
+function Rework({ result, defects, workers, onAdd, onUpdate }) {
+  const orders = result?.rework || []
+  return <><PageHeading kicker="QUALITY ASSURANCE" title="Rework orders" description="Recover rejected units with controlled assignments and re-inspection." action="Create rework order" onAction={onAdd} /><div className="metric-grid compact"><Metric label="Open rework" value={orders.filter((r) => ['PLANNED', 'IN_PROGRESS'].includes(r.status)).length} note="In the rework queue" icon="↻" tone="amber" /><Metric label="Resolved defects" value={defects.filter((d) => d.status === 'RESOLVED').length} note="Recovered or completed" icon="✓" tone="green" /><Metric label="Available assignees" value={workers.length} note="Production and quality staff" icon="♙" /></div><Section title="Rework register" subtitle="Assignments and defect resolution"><Table columns={[{ key: 'reworkNo', label: 'Rework order' }, { key: 'workOrder.workOrderNo', label: 'Work order', path: 'workOrder.workOrderNo' }, { key: 'defect.defectCode', label: 'Defect', path: 'defect.defectCode' }, { key: 'quantity', label: 'Qty' }, { key: 'assignedTo.name', label: 'Assigned to', path: 'assignedTo.name' }, { key: 'status', label: 'Status', render: (r) => <Status value={r.status} /> }, { key: 'actions', label: 'Update', render: (r) => <div className="row-actions">{r.status === 'PLANNED' && <button onClick={() => onUpdate(r.id, 'IN_PROGRESS')}>Start</button>}{r.status === 'IN_PROGRESS' && <button className="complete-button" onClick={() => onUpdate(r.id, 'COMPLETED')}>Complete</button>}</div> }]} rows={orders} emptyText="No rework orders have been created." /></Section></>
+}
+function QualityReports({ result, onRefresh }) {
+  const [range, setRange] = useState({ from: '', to: '' })
+  const report = result || {}
+  return <><PageHeading kicker="QUALITY ANALYTICS" title="Quality reports" description="Inspection yield, rejected output, defect severity, and disposition trends." action="Refresh report" onAction={() => onRefresh(range)} /><div className="report-filter"><label>From<input type="date" value={range.from} onChange={(e) => setRange((current) => ({ ...current, from: e.target.value }))} /></label><label>To<input type="date" value={range.to} onChange={(e) => setRange((current) => ({ ...current, to: e.target.value }))} /></label><button className="button subtle" onClick={() => onRefresh(range)}>Apply range</button></div><div className="metric-grid"><Metric label="Inspections" value={report.inspections?.count ?? 0} note="Selected reporting period" icon="⌕" /><Metric label="First pass yield" value={`${report.inspections?.passRate ?? 0}%`} note={`${report.inspections?.accepted ?? 0} units accepted`} icon="✓" tone="green" /><Metric label="Rejected quantity" value={report.inspections?.rejected ?? 0} note="Requires disposition" icon="⚑" tone="amber" /><Metric label="Defect quantity" value={Object.values(report.defects?.byStatus || {}).reduce((s, v) => s + Number(v.quantity), 0)} note="Logged defect records" icon="▥" tone="red" /></div><div className="report-grid"><Section title="Defects by status" subtitle="Quantity and record count"><div className="report-list">{Object.entries(report.defects?.byStatus || {}).map(([key, value]) => <div className="report-row" key={key}><Status value={key} /><span>{value.count} records</span><strong>{value.quantity} units</strong></div>)}</div></Section><Section title="Severity mix" subtitle="Defect records by severity"><div className="severity-list">{Object.entries(report.defects?.bySeverity || {}).map(([key, count]) => <div key={key}><span className={`severity-chip severity-${key.toLowerCase()}`} />{key}<strong>{count}</strong></div>)}</div></Section></div><Section title="Recent inspections" subtitle={report.range ? `${fmtDate(report.range.from)} – ${fmtDate(report.range.to)}` : 'Current reporting period'}><Table columns={[{ key: 'inspectionNo', label: 'Inspection' }, { key: 'workOrder.workOrderNo', label: 'Work order', path: 'workOrder.workOrderNo' }, { key: 'inspectedAt', label: 'Date', render: (r) => fmtDateTime(r.inspectedAt) }, { key: 'inspectedQuantity', label: 'Inspected' }, { key: 'acceptedQuantity', label: 'Accepted' }, { key: 'rejectedQuantity', label: 'Rejected' }, { key: 'status', label: 'Result', render: (r) => <Status value={r.status} /> }]} rows={report.recentInspections || []} /></Section></>
+}
+function BomList({ result, onAdd, onRefresh, onUpdate }) {
+  return <><PageHeading title="Bill of materials" description="Maintain versioned product recipes and release build instructions to production." action="New BOM revision" onAction={onAdd} /><div className="metric-grid compact">{Object.entries(result?.stats?.byStatus || {}).map(([status, value]) => <Metric key={status} label={status.replaceAll('_', ' ')} value={value} note="BOM revisions" icon="⊞" />)}</div><Section title="BOM revisions" subtitle="Product components, costs, and engineering status" action="Refresh" onAction={onRefresh}><Table columns={[{ key: 'product.sku', label: 'SKU', path: 'product.sku' }, { key: 'product.name', label: 'Product', path: 'product.name' }, { key: 'revision', label: 'Revision' }, { key: 'items', label: 'Components', render: (r) => r.items?.length || 0 }, { key: 'operations', label: 'Operations', render: (r) => r.operations?.length || 0 }, { key: 'status', label: 'Status', render: (r) => <Status value={r.status} /> }, { key: 'actions', label: '', render: (r) => <div className="row-actions">{r.status === 'DRAFT' && <button onClick={() => onUpdate(r.id, 'IN_REVIEW')}>Submit review</button>}{r.status === 'IN_REVIEW' && <button className="complete-button" onClick={() => onUpdate(r.id, 'RELEASED')}>Release</button>}</div> }]} rows={result?.boms || []} emptyText="No BOM revisions found. Create a draft recipe to begin." /></Section></>
+}
+function Modal({ title, onClose, children }) { return <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><section className="modal" role="dialog" aria-modal="true" aria-label={title}><header><div><div className="eyebrow">YASH GROUP · ERP</div><h2>{title}</h2></div><button className="modal-close" onClick={onClose} aria-label="Close">×</button></header>{children}</section></div> }
+function fmtDate(value) { return value ? new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)) : '—' }
+function fmtDateTime(value) { return value ? new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value)) : '—' }
+function dateInputValue(value) { return value ? new Date(value).toISOString().slice(0, 10) : '' }
 
 export default App
