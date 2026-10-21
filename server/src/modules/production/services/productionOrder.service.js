@@ -139,7 +139,7 @@ export const getProductionOrders = async (filters = {}) => {
   if (filters.priority) where.priority = filters.priority;
   if (filters.salesOrderId)
     where.salesOrderId = positive(filters.salesOrderId, "Sales order ID");
-  const [orders, total] = await prisma.$transaction([
+  const [orders, total] = await Promise.all([
     prisma.workOrder.findMany({
       where,
       include: workOrderInclude,

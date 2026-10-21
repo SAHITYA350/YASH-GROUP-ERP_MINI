@@ -126,7 +126,7 @@ export const getQualityInspections = async (filters = {}) => {
     where.workOrderId = numeric(filters.workOrderId, "Work order ID", {
       required: true,
     });
-  const [inspections, total] = await prisma.$transaction([
+  const [inspections, total] = await Promise.all([
     prisma.qualityInspection.findMany({
       where,
       include,
@@ -246,7 +246,7 @@ export const updateQualityInspection = async (id, data) => {
 };
 
 export const getQualityStats = async () => {
-  const [statusCounts, totals, recentInspections] = await prisma.$transaction([
+  const [statusCounts, totals, recentInspections] = await Promise.all([
     prisma.qualityInspection.groupBy({ by: ["status"], _count: { id: true } }),
     prisma.qualityInspection.aggregate({
       _sum: {

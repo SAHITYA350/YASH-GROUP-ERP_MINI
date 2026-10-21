@@ -343,7 +343,7 @@ export const upsertBOMOperations = async (bomRevisionId, operations) => {
 // 8. BOM STATS
 // ─────────────────────────────────────────────
 export const getBOMStats = async () => {
-  const [statusCounts, costAgg] = await prisma.$transaction([
+  const [statusCounts, costAgg] = await Promise.all([
     prisma.bOMRevision.groupBy({ by: ["status"], _count: { id: true } }),
     prisma.bOMRevision.aggregate({
       _avg: { materialCost: true, laborCost: true, overheadCost: true },

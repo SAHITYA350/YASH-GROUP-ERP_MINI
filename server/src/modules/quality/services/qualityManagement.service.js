@@ -39,7 +39,7 @@ export const listDefects = async (filters = {}) => {
   if (filters.severity) where.severity = filters.severity;
   if (filters.category)
     where.category = { contains: filters.category, mode: "insensitive" };
-  const [defects, total] = await prisma.$transaction([
+  const [defects, total] = await Promise.all([
     prisma.qualityDefect.findMany({
       where,
       include: defectInclude,

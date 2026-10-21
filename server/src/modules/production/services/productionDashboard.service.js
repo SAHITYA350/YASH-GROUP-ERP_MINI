@@ -15,88 +15,85 @@ export const getProductionDashboardStats = async () => {
     completedThisMonth,
     delayedOrders,
     inventoryTotals,
-  ] = await prisma.$transaction(
-    [
-      // Work order status breakdown
-      prisma.workOrder.groupBy({ by: ["status"], _count: { id: true } }),
-      // Work order qty aggregates
-      prisma.workOrder.aggregate({
-        _sum: {
-          plannedQuantity: true,
-          goodQuantity: true,
-          rejectedQuantity: true,
-        },
-        _count: { id: true },
-      }),
-      // QI status breakdown
-      prisma.qualityInspection.groupBy({
-        by: ["status"],
-        _count: { id: true },
-      }),
-      // QI qty aggregates
-      prisma.qualityInspection.aggregate({
-        _sum: {
-          inspectedQuantity: true,
-          acceptedQuantity: true,
-          rejectedQuantity: true,
-        },
-      }),
-      // BOM status breakdown
-      prisma.bOMRevision.groupBy({ by: ["status"], _count: { id: true } }),
-      // Active work orders (IN_PROGRESS)
-      prisma.workOrder.findMany({
-        where: { status: { in: ["IN_PROGRESS", "RELEASED", "QC_HOLD"] } },
-        include: {
-          salesOrder: {
-            select: {
-              orderNumber: true,
-              customer: { select: { name: true } },
-            },
+  ] = await Promise.all([
+    // Work order status breakdown
+    prisma.workOrder.groupBy({ by: ["status"], _count: { id: true } }),
+    // Work order qty aggregates
+    prisma.workOrder.aggregate({
+      _sum: {
+        plannedQuantity: true,
+        goodQuantity: true,
+        rejectedQuantity: true,
+      },
+      _count: { id: true },
+    }),
+    // QI status breakdown
+    prisma.qualityInspection.groupBy({
+      by: ["status"],
+      _count: { id: true },
+    }),
+    // QI qty aggregates
+    prisma.qualityInspection.aggregate({
+      _sum: {
+        inspectedQuantity: true,
+        acceptedQuantity: true,
+        rejectedQuantity: true,
+      },
+    }),
+    // BOM status breakdown
+    prisma.bOMRevision.groupBy({ by: ["status"], _count: { id: true } }),
+    // Active work orders (IN_PROGRESS)
+    prisma.workOrder.findMany({
+      where: { status: { in: ["IN_PROGRESS", "RELEASED", "QC_HOLD"] } },
+      include: {
+        salesOrder: {
+          select: {
+            orderNumber: true,
+            customer: { select: { name: true } },
           },
         },
-        orderBy: { plannedEnd: "asc" },
-        take: 5,
-      }),
-      // Pending quality inspections
-      prisma.qualityInspection.findMany({
-        where: { status: { in: ["PENDING", "HOLD"] } },
-        include: {
-          workOrder: {
-            select: {
-              workOrderNo: true,
-              salesOrder: {
-                select: {
-                  orderNumber: true,
-                  customer: { select: { name: true } },
-                },
+      },
+      orderBy: { plannedEnd: "asc" },
+      take: 5,
+    }),
+    // Pending quality inspections
+    prisma.qualityInspection.findMany({
+      where: { status: { in: ["PENDING", "HOLD"] } },
+      include: {
+        workOrder: {
+          select: {
+            workOrderNo: true,
+            salesOrder: {
+              select: {
+                orderNumber: true,
+                customer: { select: { name: true } },
               },
             },
           },
         },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }),
-      // Completed this month
-      prisma.workOrder.count({
-        where: {
-          status: "COMPLETED",
-          actualEnd: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-          },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+    // Completed this month
+    prisma.workOrder.count({
+      where: {
+        status: "COMPLETED",
+        actualEnd: {
+          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         },
-      }),
-      prisma.workOrder.count({
-        where: {
-          plannedEnd: { lt: new Date() },
-          status: { notIn: ["COMPLETED", "CANCELLED"] },
-        },
-      }),
-      prisma.inventory.aggregate({
-        _sum: { physicalQuantity: true, reservedQuantity: true },
-      }),
-    ],
-    { maxWait: 15_000, timeout: 30_000 },
-  );
+      },
+    }),
+    prisma.workOrder.count({
+      where: {
+        plannedEnd: { lt: new Date() },
+        status: { notIn: ["COMPLETED", "CANCELLED"] },
+      },
+    }),
+    prisma.inventory.aggregate({
+      _sum: { physicalQuantity: true, reservedQuantity: true },
+    }),
+  ]);
 
   const woByStatus = Object.fromEntries(
     woStatusCounts.map((r) => [r.status, r._count.id]),
