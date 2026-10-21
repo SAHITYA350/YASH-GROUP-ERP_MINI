@@ -21,26 +21,29 @@ export function Sidebar() {
     borderRadius: 'var(--radius-md)',
     fontSize: '0.875rem',
     fontWeight: isActive ? 600 : 500,
-    color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-    backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+    color: isActive ? '#fff' : 'var(--sidebar-text)',
+    backgroundColor: isActive ? 'var(--sidebar-active)' : 'transparent',
     textDecoration: 'none',
     transition: 'all var(--transition-fast)',
+    boxShadow: isActive ? '0 2px 8px rgba(14, 112, 84, 0.4)' : 'none',
   });
 
   return (
     <aside
+      className="sidebar"
       style={{
         width: 'var(--sidebar-width)',
         minWidth: 'var(--sidebar-width)',
         height: '100vh',
-        backgroundColor: 'var(--bg-surface)',
-        borderRight: '1px solid var(--border-subtle)',
+        backgroundColor: 'var(--sidebar-bg)',
+        borderRight: '1px solid var(--sidebar-border)',
         display: 'flex',
         flexDirection: 'column',
         position: 'sticky',
         top: 0,
         zIndex: 40,
         userSelect: 'none',
+        color: '#fff',
       }}
     >
       {/* Brand Header */}
@@ -51,31 +54,31 @@ export function Sidebar() {
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
-          borderBottom: '1px solid var(--border-subtle)',
+          borderBottom: '1px solid var(--sidebar-border)',
         }}
       >
         <div
           style={{
-            width: '34px',
-            height: '34px',
+            width: '38px',
+            height: '38px',
             borderRadius: 'var(--radius-md)',
-            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+            background: 'linear-gradient(135deg, #0e7054 0%, #10b981 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#fff',
-            fontWeight: 700,
+            fontWeight: 800,
             fontSize: '1.1rem',
-            boxShadow: '0 2px 4px rgba(37,99,235,0.3)',
+            boxShadow: '0 4px 10px rgba(14, 112, 84, 0.4)',
           }}
         >
           Y
         </div>
         <div>
-          <div style={{ fontWeight: 700, fontSize: '0.95rem', letterSpacing: '-0.01em', color: 'var(--text-main)' }}>
+          <div style={{ fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.01em', color: '#fff' }}>
             YASH GROUP ERP
           </div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--sidebar-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Module 6: Finance & Commercial
           </div>
         </div>
@@ -87,12 +90,12 @@ export function Sidebar() {
           padding: '1rem 0.75rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.25rem',
+          gap: '0.3rem',
           overflowY: 'auto',
           flex: 1,
         }}
       >
-        <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-subtle)', padding: '0.5rem 0.75rem 0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--sidebar-text-muted)', padding: '0.5rem 0.75rem 0.25rem', textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.9 }}>
           Finance Operations
         </div>
 
@@ -116,7 +119,7 @@ export function Sidebar() {
           <span>Payments Received</span>
         </NavLink>
 
-        <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-subtle)', padding: '0.75rem 0.75rem 0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--sidebar-text-muted)', padding: '0.75rem 0.75rem 0.25rem', textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.9 }}>
           Payables & Costing
         </div>
 
@@ -145,8 +148,8 @@ export function Sidebar() {
       <div
         style={{
           padding: '0.85rem 1rem',
-          borderTop: '1px solid var(--border-subtle)',
-          backgroundColor: 'var(--bg-surface-alt)',
+          borderTop: '1px solid var(--sidebar-border)',
+          backgroundColor: 'rgba(255, 255, 255, 0.03)',
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
@@ -157,8 +160,8 @@ export function Sidebar() {
             width: '32px',
             height: '32px',
             borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--primary-light)',
-            color: 'var(--primary)',
+            backgroundColor: 'rgba(14, 112, 84, 0.25)',
+            color: 'var(--sidebar-text)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -170,8 +173,8 @@ export function Sidebar() {
           <div
             style={{
               fontSize: '0.825rem',
-              fontWeight: 600,
-              color: 'var(--text-main)',
+              fontWeight: 700,
+              color: '#fff',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -182,11 +185,11 @@ export function Sidebar() {
           <div
             style={{
               fontSize: '0.7rem',
-              color: 'var(--success)',
+              color: 'var(--sidebar-text-muted)',
               display: 'flex',
               alignItems: 'center',
               gap: '0.25rem',
-              fontWeight: 500,
+              fontWeight: 600,
             }}
           >
             <ShieldCheck size={12} />
