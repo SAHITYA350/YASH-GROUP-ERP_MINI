@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import WorkforceDashboard from './pages/WorkforceDashboard';
 import EmployeesPayroll from './pages/EmployeesPayroll';
 import TasksApprovals from './pages/TasksApprovals';
 import LeaveManagement from './pages/LeaveManagement';
@@ -9,7 +8,7 @@ import ManagementMIS from './pages/ManagementMIS';
 import MediaLibrary from './pages/MediaLibrary';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('employees');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isAssignTaskOpen, setIsAssignTaskOpen] = useState(false);
 
@@ -31,10 +30,6 @@ export default function App() {
         />
 
         <main className="reference-main-content">
-          {activeTab === 'dashboard' && (
-            <WorkforceDashboard onNavigate={(tab) => setActiveTab(tab)} />
-          )}
-
           {activeTab === 'employees' && (
             <EmployeesPayroll
               onOpenAssignTask={() => {

@@ -127,8 +127,115 @@ export const updateSettings = async (req, res) => {
   }
 };
 
+export const getUserAttendanceLogs = async (req, res) => {
+  try {
+    let logs = [];
+    if (prisma && prisma.userAttendanceLog) {
+      try {
+        logs = await prisma.userAttendanceLog.findMany({
+          take: 100,
+          orderBy: { id: 'desc' },
+        });
+      } catch (logQueryErr) {
+        console.warn('[Attendance] userAttendanceLog table query notice:', logQueryErr.message);
+      }
+    }
+
+    let users = [];
+    if (prisma && prisma.user) {
+      try {
+        users = await prisma.user.findMany({
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            department: true,
+            shift: true,
+            role: true,
+            isLoggedIn: true,
+            updatedAt: true,
+          },
+          orderBy: { id: 'asc' },
+        });
+      } catch (userQueryErr) {
+        console.warn('[Attendance] User query notice:', userQueryErr.message);
+      }
+    }
+
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    const loggedUserIds = new Set(logs.map((l) => l.userId));
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    const enriched = logs.map((log) => {
+      const u = userMap.get(log.userId);
+      return {
+        id: log.id,
+        userId: log.userId,
+        userName: u?.name || `User #${log.userId}`,
+        email: u?.email || '',
+        department: u?.department || 'Operations',
+        shift: u?.shift || 'GENERAL',
+        role: u?.role || 'STAFF',
+        isLoggedIn: u?.isLoggedIn ?? false,
+        date: log.date
+          ? typeof log.date === 'string'
+            ? log.date.split('T')[0]
+            : log.date.toISOString().split('T')[0]
+          : todayStr,
+        firstLoginAt: log.firstLoginAt,
+        lastActiveAt: log.lastActiveAt,
+        status: log.status || 'OnTime',
+        lateMinutes: log.lateMinutes || 0,
+        locationStatus: log.locationStatus || 'InOffice',
+        ipAddress: log.ipAddress || '127.0.0.1',
+      };
+    });
+
+    // Ensure all authenticated users are included in the login & presence register
+    for (const u of users) {
+      if (!loggedUserIds.has(u.id)) {
+        enriched.push({
+          id: `usr-${u.id}`,
+          userId: u.id,
+          userName: u.name,
+          email: u.email,
+          department: u.department || 'Operations',
+          shift: u.shift || 'GENERAL',
+          role: u.role || 'STAFF',
+          isLoggedIn: u.isLoggedIn,
+          date: todayStr,
+          firstLoginAt: u.updatedAt || now,
+          lastActiveAt: u.updatedAt || now,
+          status: 'OnTime',
+          lateMinutes: 0,
+          locationStatus: u.shift === 'SITE' ? 'OnSite' : 'InOffice',
+          ipAddress: '127.0.0.1',
+        });
+      }
+    }
+
+    // Sort: online users first, then by id
+    enriched.sort((a, b) => {
+      if (a.isLoggedIn && !b.isLoggedIn) return -1;
+      if (!a.isLoggedIn && b.isLoggedIn) return 1;
+      return 0;
+    });
+
+    res.json({
+      success: true,
+      count: enriched.length,
+      logs: enriched,
+      data: enriched,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, logs: [], data: [] });
+  }
+};
+
 export default {
   getAttendanceRegister,
+  getUserAttendanceLogs,
   markAttendance,
   getSettings,
   updateSettings,

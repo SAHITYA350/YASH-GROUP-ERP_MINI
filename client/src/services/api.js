@@ -94,6 +94,7 @@ export const api = {
 
   // Attendance
   getAttendance: () => fetchJson('/attendance'),
+  getUserAttendanceLogs: () => fetchJson('/attendance/login-logs'),
   markAttendance: (payload) => fetchJson('/attendance/mark', { method: 'POST', body: JSON.stringify(payload) }),
   getAttendanceSettings: () => fetchJson('/attendance/settings'),
   updateAttendanceSettings: (settings) => fetchJson('/attendance/settings', { method: 'PUT', body: JSON.stringify(settings) }),

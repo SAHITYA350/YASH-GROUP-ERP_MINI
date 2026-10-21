@@ -16,11 +16,6 @@ import { api } from '../services/api';
 export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }) {
   const menuItems = [
     {
-      id: 'dashboard',
-      title: 'Dashboard',
-      icon: LayoutDashboard,
-    },
-    {
       id: 'employees',
       title: 'Employees & Payroll',
       icon: Users,
