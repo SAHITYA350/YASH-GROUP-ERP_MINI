@@ -1,21 +1,46 @@
 {
   "name": "server",
   "version": "1.0.0",
+<<<<<<< HEAD
+  "description": "YASH-GROUP ERP — Production & Quality Module API",
+=======
   "description": "Yash Group ERP API",
+>>>>>>> origin/dev
   "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+<<<<<<< HEAD
+    "test": "node test_suite.mjs",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "db:seed": "node seed.js"
+=======
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "seed": "prisma db seed",
     "test": "echo \"Error: no test specified\" && exit 1"
+>>>>>>> origin/dev
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+<<<<<<< HEAD
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
+    "nodemon": "^3.1.14",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "prisma": "^7.10.1"
+=======
   "prisma": {
     "seed": "node prisma/seed.js"
   },
@@ -40,5 +65,6 @@
     "prisma": "^5.22.0",
     "supertest": "^7.0.0",
     "vitest": "^3.0.5"
+>>>>>>> origin/dev
   }
 }

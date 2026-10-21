@@ -147,3 +147,9 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+#festure list file
+server/feature_list
+
+server/prisma
+# Ignore package manifests
+package-lock.json

@@ -1,3 +1,19 @@
+<<<<<<< HEAD
+* {
+  box-sizing: border-box;
+}
+html {
+  min-width: 0;
+  min-height: 100%;
+  background: #2d2e32;
+}
+body {
+  min-width: 0;
+  min-height: 100vh;
+  margin: 0;
+}
+body,
+=======
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
@@ -2990,10 +3006,24 @@ html, body {
 body {
   margin: 0;
 }
+>>>>>>> origin/dev
 button,
 input,
 select,
 textarea {
+<<<<<<< HEAD
+  font-family: "DM Sans", Arial, sans-serif;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #78a0f3;
+  outline-offset: 2px;
+}
+#root {
+  min-height: 100vh;
+=======
   font: inherit;
 }
 button {
@@ -3228,6 +3258,7 @@ td {
   color: #047857;
   padding: 4px 8px;
   font-size: 12px;
+>>>>>>> origin/dev
 }
 .pad {
   padding: 18px;

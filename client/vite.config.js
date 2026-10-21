@@ -1,3 +1,25 @@
+<<<<<<< HEAD
+import react from "@vitejs/plugin-react";
+import { defineConfig, loadEnv } from "vite";
+
+// https://vite.dev/config/
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, ".", "VITE_");
+  return {
+    plugins: [react()],
+    server: {
+      port: 5173,
+      strictPort: true,
+      proxy: {
+        "/api": {
+          target: env.VITE_API_PROXY_TARGET || "http://127.0.0.1:5000",
+          changeOrigin: true,
+        },
+      },
+    },
+  };
+});
+=======
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
@@ -24,3 +46,4 @@ export default defineConfig(({ mode }) => {
     },
   }
 })
+>>>>>>> origin/dev
