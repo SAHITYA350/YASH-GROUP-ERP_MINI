@@ -7,9 +7,18 @@ import { defineConfig, loadEnv } from 'vite'
 export default defineConfig(({ mode }) => {
   const serverDirectory = fileURLToPath(new URL('../server', import.meta.url))
   const serverEnv = loadEnv(mode, serverDirectory, '')
-  const apiPort = serverEnv.PORT || '3001'
-
-  return {
+  const apiPort = serverEnv.PORT || '5000'  
+  plugins: [react()],
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
+  },
+    return {
     plugins: [react(), tailwindcss()],
     server: { proxy: { '/api': `http://localhost:${apiPort}` } },
   }

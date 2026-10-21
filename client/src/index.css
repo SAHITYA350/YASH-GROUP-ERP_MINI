@@ -404,3 +404,4 @@ td {
   color: #047857;
   font-size: 14px;
 }
+@import "./styles/global.css";

@@ -42,3 +42,6 @@ export default function App() {
     </AuthProvider>
   );
 }
+import App from './app/App';
+
+export default App;

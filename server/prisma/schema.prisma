@@ -1429,8 +1429,6 @@ model SpecificationRequest {
   @@index([leadId])
 }
 
-// Separate raw-material/store item ledger from saleable/manufactured Product inventory.
-
 model InventoryItem {
   id                Int      @id @default(autoincrement())
   itemCode          String   @unique
