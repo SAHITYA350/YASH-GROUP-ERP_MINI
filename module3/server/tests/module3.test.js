@@ -12,11 +12,11 @@
 
 import assert from "node:assert/strict";
 
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = "http://localhost:5003/api";
 
 async function runTests() {
   console.log("=================================================");
-  console.log("🧪 RUNNING MODULE 3 AUTOMATED TESTS (PORT 5000)");
+  console.log("🧪 RUNNING MODULE 3 AUTOMATED TESTS (PORT 5003)");
   console.log("=================================================");
 
   let passed = 0;
@@ -35,12 +35,12 @@ async function runTests() {
   }
 
   // 1. Health Endpoint Test
-  await test("1. Health Endpoint confirms Port 5000 & Module 3 identity", async () => {
+  await test("1. Health Endpoint confirms Port 5003 & Module 3 identity", async () => {
     const res = await fetch(`${BASE_URL}/health`);
     assert.equal(res.status, 200);
     const json = await res.json();
     assert.equal(json.status, "healthy");
-    assert.equal(parseInt(json.port, 10), 5000);
+    assert.equal(parseInt(json.port, 10), 5003);
     assert.match(json.module, /Module 3/);
   });
 
