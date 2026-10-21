@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import api from "../services/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const allNavItems = [
   ["/", LayoutDashboard, "Dashboard", "dashboard:read"],
@@ -23,28 +23,33 @@ const allNavItems = [
   ["/orders", ShoppingCart, "Sales orders", "order:read"],
   ["/invoices", Receipt, "Invoices", "invoice:read"],
   ["/products", Package, "Product catalogue", "product:read"],
-  ["/access-management", ShieldCheck, "Access management", "user:read"],
+  // Access management is visible only to admins
+  ["/access-management", ShieldCheck, "Access management", "__admin__"],
 ];
 
-export default function AppShell({ user }) {
+export default function AppShell() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { user, isAdmin, hasPermission, logout } = useAuth();
 
-  const logout = async () => {
-    await api.post("/auth/logout");
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
-  const hasAccess = (requiredPerm) => {
-    if (!requiredPerm) return true;
-    if (user.role === "ADMIN") return true;
-    const perms = user.permissions || [];
-    return perms.includes("*") || perms.includes(requiredPerm);
+  /**
+   * Determines nav-item visibility.
+   * "__admin__" is a sentinel meaning "ADMIN role only".
+   * All other permission keys are evaluated against effective permissions
+   * returned by the server (user.permissions already reflects effectivePermissions).
+   */
+  const isNavVisible = (perm) => {
+    if (!perm) return true;
+    if (perm === "__admin__") return isAdmin;
+    return hasPermission(perm);
   };
 
-  const visibleNavItems = allNavItems.filter(([_, __, ___, perm]) =>
-    hasAccess(perm)
-  );
+  const visibleNavItems = allNavItems.filter(([, , , perm]) => isNavVisible(perm));
 
   return (
     <div className="shell">
@@ -62,7 +67,7 @@ export default function AppShell({ user }) {
             </NavLink>
           ))}
         </nav>
-        <button className="logout" onClick={logout}>
+        <button className="logout" onClick={handleLogout}>
           <LogOut size={17} />
           Sign out
         </button>
@@ -78,16 +83,16 @@ export default function AppShell({ user }) {
             <span
               style={{
                 fontSize: "11px",
-                background: user.role === "ADMIN" ? "#ecfdf5" : "#f1f5f9",
-                color: user.role === "ADMIN" ? "#047857" : "#475569",
+                background: isAdmin ? "#ecfdf5" : "#f1f5f9",
+                color: isAdmin ? "#047857" : "#475569",
                 padding: "3px 8px",
                 borderRadius: "999px",
                 fontWeight: "600",
               }}
             >
-              {user.role}
+              {user?.role}
             </span>
-            <b>{user.name}</b>
+            <b>{user?.name}</b>
           </div>
         </header>
         <main>

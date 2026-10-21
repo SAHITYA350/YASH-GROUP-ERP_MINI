@@ -1,17 +1,24 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ErrorMessage, Field } from "../components/ui.jsx";
 import api, { getApiErrorMessage } from "../services/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { user, loading, refresh } = useAuth();
   const [error, setError] = useState(null);
   const {
     register,
     handleSubmit,
     formState: { isSubmitting },
   } = useForm();
+
+  // If the user already has a valid session, skip the login page entirely.
+  if (!loading && user) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <main className="login">
@@ -20,6 +27,8 @@ export default function LoginPage() {
           try {
             setError(null);
             await api.post("/auth/login", values);
+            // Refresh the AuthContext so user state is populated before navigating.
+            await refresh();
             navigate("/");
           } catch (requestError) {
             setError({ message: getApiErrorMessage(requestError) });
@@ -44,7 +53,7 @@ export default function LoginPage() {
             autoComplete="current-password"
           />
         </Field>
-        <button disabled={isSubmitting} className="primary">
+        <button disabled={isSubmitting || loading} className="primary">
           {isSubmitting ? "Signing in…" : "Sign in"}
         </button>
       </form>

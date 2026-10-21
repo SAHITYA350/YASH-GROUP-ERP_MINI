@@ -16,8 +16,10 @@ import {
 import useApi from "../hooks/useApi.js";
 import { Empty, ErrorMessage, Modal, PageHeader } from "../components/ui.jsx";
 import api, { getApiErrorMessage } from "../services/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function AccessManagementPage() {
+  const { isAdmin } = useAuth();
   const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState(null);
   const [saveLoading, setSaveLoading] = useState(false);
@@ -285,6 +287,7 @@ export default function AccessManagementPage() {
                           )}
                         </td>
                         <td>
+                          {isAdmin ? (
                           <button
                             className="secondary small"
                             onClick={() => handleEdit(user)}
@@ -293,6 +296,9 @@ export default function AccessManagementPage() {
                             <Shield size={14} />
                             Alter Access
                           </button>
+                          ) : (
+                            <span style={{ fontSize: "12px", color: "#94a3b8" }}>View only</span>
+                          )}
                         </td>
                       </tr>
                     );

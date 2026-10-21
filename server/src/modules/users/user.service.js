@@ -37,6 +37,12 @@ export const createUserService = (userRepo, auditService) => ({
   },
 
   updateAccessibility: async (actor, id, input) => {
+    // Defence-in-depth: enforce ADMIN-only at the service layer as well,
+    // so this cannot be reached even if a middleware is misconfigured.
+    if (actor?.role !== "ADMIN") {
+      throw fail(403, "Only administrators can modify user access", "ADMIN_REQUIRED");
+    }
+
     const user = await userRepo.findById(id);
     if (!user) throw fail(404, "User not found", "NOT_FOUND");
 
