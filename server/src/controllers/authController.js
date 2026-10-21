@@ -86,6 +86,58 @@ export const login = async (req, res) => {
       });
     }
 
+    if (prisma && authenticatedUser.id) {
+      try {
+        await prisma.user.update({
+          where: { id: authenticatedUser.id },
+          data: { isLoggedIn: true },
+        });
+
+        const todayDate = new Date();
+        todayDate.setUTCHours(0, 0, 0, 0);
+
+        const existingLog = await prisma.userAttendanceLog.findUnique({
+          where: {
+            userId_date: {
+              userId: authenticatedUser.id,
+              date: todayDate,
+            },
+          },
+        });
+
+        const now = new Date();
+        if (!existingLog) {
+          // Calculate shift timeliness based on General shift (09:30 + 10m grace = 09:40)
+          const targetMinutes = 9 * 60 + 30;
+          const graceMinutes = 10;
+          const currentMinutes = now.getHours() * 60 + now.getMinutes();
+          const lateMinutes = Math.max(0, currentMinutes - (targetMinutes + graceMinutes));
+          const status = lateMinutes > 0 ? 'Late' : 'OnTime';
+
+          await prisma.userAttendanceLog.create({
+            data: {
+              userId: authenticatedUser.id,
+              date: todayDate,
+              firstLoginAt: now,
+              lastActiveAt: now,
+              status,
+              lateMinutes,
+              locationStatus: 'InOffice',
+              ipAddress: req.ip || '127.0.0.1',
+              userAgent: (req.headers['user-agent'] || 'ERP Web Client').slice(0, 150),
+            },
+          });
+        } else {
+          await prisma.userAttendanceLog.update({
+            where: { id: existingLog.id },
+            data: { lastActiveAt: now },
+          });
+        }
+      } catch (logErr) {
+        console.warn('[Auth] Attendance log notice:', logErr.message);
+      }
+    }
+
     const token = jwt.sign(authenticatedUser, JWT_SECRET, { expiresIn: '7d' });
 
     res.json({
@@ -108,7 +160,17 @@ export const getCurrentUser = (req, res) => {
 
 export const getMe = getCurrentUser;
 
-export const logout = (req, res) => {
+export const logout = async (req, res) => {
+  if (prisma && req.user?.id) {
+    try {
+      await prisma.user.update({
+        where: { id: req.user.id },
+        data: { isLoggedIn: false },
+      });
+    } catch (e) {
+      console.warn('[Auth] Logout status update notice:', e.message);
+    }
+  }
   res.json({
     success: true,
     message: 'Logged out successfully',

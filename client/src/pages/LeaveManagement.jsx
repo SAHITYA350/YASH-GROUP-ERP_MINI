@@ -25,6 +25,8 @@ export default function LeaveManagement() {
   const [dashboard, setDashboard] = useState(null);
   const [requests, setRequests] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
+  const [employeesError, setEmployeesError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionNotice, setActionNotice] = useState(null);
@@ -56,30 +58,46 @@ export default function LeaveManagement() {
   // Details Modal State
   const [detailsItem, setDetailsItem] = useState(null);
 
-  // Load Initial Data
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
+  // Fetch Employees independently
+  const fetchEmployees = async () => {
+    setEmployeesLoading(true);
+    setEmployeesError(null);
     try {
-      const [dashRes, reqRes, empRes] = await Promise.all([
-        api.getLeaveDashboard(),
-        api.getLeaveRequests(),
-        api.getEmployees(),
-      ]);
-
-      if (dashRes && dashRes.success) {
-        setDashboard(dashRes.dashboard || null);
-      }
-      if (reqRes && reqRes.success) {
-        setRequests(reqRes.requests || reqRes.data || []);
-      }
+      const empRes = await api.getEmployees();
       if (empRes && empRes.success) {
         const empList = empRes.employees || empRes.data || [];
         setEmployees(empList);
         if (empList.length > 0 && !selectedEmpId) {
           setSelectedEmpId(empList[0].id);
         }
+      } else {
+        setEmployeesError(empRes?.message || 'Failed to retrieve workforce employees');
       }
+    } catch (err) {
+      console.error('Failed to load employees:', err);
+      setEmployeesError(err.message || 'Error connecting to database workforce service');
+    } finally {
+      setEmployeesLoading(false);
+    }
+  };
+
+  // Load Initial Data
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [dashRes, reqRes] = await Promise.allSettled([
+        api.getLeaveDashboard(),
+        api.getLeaveRequests(),
+      ]);
+
+      if (dashRes.status === 'fulfilled' && dashRes.value?.success) {
+        setDashboard(dashRes.value.dashboard || null);
+      }
+      if (reqRes.status === 'fulfilled' && reqRes.value?.success) {
+        setRequests(reqRes.value.requests || reqRes.value.data || []);
+      }
+      await fetchEmployees();
     } catch (err) {
       console.error('Failed to load leave data:', err);
       setError(err.message || 'Unable to connect to leave management service');
@@ -91,6 +109,13 @@ export default function LeaveManagement() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Proactively fetch employees when modal opens if list is empty
+  useEffect(() => {
+    if (isNewModalOpen && employees.length === 0 && !employeesLoading) {
+      fetchEmployees();
+    }
+  }, [isNewModalOpen]);
 
   // Update dynamic leave balance whenever selected employee changes in modal
   useEffect(() => {
@@ -552,7 +577,7 @@ export default function LeaveManagement() {
 
                       <td>
                         <span className="sub-date">
-                          {new Date(req.submittedAt).toLocaleDateString('en-IN', {
+                          {new Date(req.submittedAt || req.appliedAt || Date.now()).toLocaleDateString('en-IN', {
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric'
@@ -667,17 +692,51 @@ export default function LeaveManagement() {
 
                 {/* Employee Selector */}
                 <div className="form-group">
-                  <label>Select Employee *</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ margin: 0 }}>Select Employee *</label>
+                    {employeesLoading && (
+                      <span style={{ fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <RefreshCw size={12} className="spin-animate" /> Loading workforce...
+                      </span>
+                    )}
+                  </div>
+
+                  {employeesError && (
+                    <div className="modal-error-alert" style={{ marginBottom: '8px', padding: '6px 10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <AlertTriangle size={14} />
+                      <span style={{ flex: 1 }}>{employeesError}</span>
+                      <button 
+                        type="button" 
+                        onClick={fetchEmployees}
+                        style={{ background: 'none', border: 'none', color: '#dc2626', textDecoration: 'underline', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
+
                   <select 
                     value={selectedEmpId} 
                     onChange={(e) => setSelectedEmpId(e.target.value)}
                     required
+                    disabled={employeesLoading || (employees.length === 0 && !employeesError)}
                   >
-                    {employees.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.fullName} ({e.employeeCode}) — {e.department}
-                      </option>
-                    ))}
+                    {employeesLoading ? (
+                      <option value="" disabled>Loading workforce employees from database...</option>
+                    ) : employeesError ? (
+                      <option value="" disabled>Error loading employees (click retry above)</option>
+                    ) : employees.length === 0 ? (
+                      <option value="" disabled>No active workforce employees found in database</option>
+                    ) : (
+                      <>
+                        <option value="" disabled>-- Select Employee --</option>
+                        {employees.map((e) => (
+                          <option key={e.id} value={e.id}>
+                            {e.fullName} ({e.employeeCode}) — {e.department}
+                          </option>
+                        ))}
+                      </>
+                    )}
                   </select>
                 </div>
 

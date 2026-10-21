@@ -89,16 +89,22 @@ export default function EmployeesPayroll({ onOpenAssignTask }) {
     }
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modalError, setModalError] = useState(null);
+
   const handleCreateEmployee = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setModalError(null);
     try {
       await api.createEmployee(newEmpForm);
       setShowAddModal(false);
       setNewEmpForm({
         fullName: '',
         department: 'Sales',
-        designation: 'Sales Executive',
-        salary: 45000,
+        designation: '',
+        salary: 0,
         employmentType: 'Full-time',
         shift: 'General',
         currentWork: '',
@@ -106,7 +112,9 @@ export default function EmployeesPayroll({ onOpenAssignTask }) {
       fetchEmployees();
       fetchPayroll();
     } catch (err) {
-      alert(err.message);
+      setModalError(err.message || 'Failed to save employee to database');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -548,14 +556,20 @@ export default function EmployeesPayroll({ onOpenAssignTask }) {
                     placeholder="e.g. CNC setup + cutting"
                   />
                 </div>
+
+                {modalError && (
+                  <div style={{ background: '#fef2f2', border: '1px solid #f87171', color: '#b91c1c', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '14px' }}>
+                    <strong>Error:</strong> {modalError}
+                  </div>
+                )}
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)}>
+                <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)} disabled={isSubmitting}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary">
-                  Save Employee
+                <button type="submit" className="btn-primary" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving Employee...' : 'Save Employee'}
                 </button>
               </div>
             </form>

@@ -1,54 +1,53 @@
 import React from 'react';
 import { 
+  LayoutDashboard,
   Users, 
   CheckSquare, 
-  TrendingUp, 
   BarChart3, 
+  Briefcase,
   GitBranch, 
   Folder, 
-  CalendarCheck,
-  Building2, 
-  X,
-  ChevronRight,
-  Shield
+  CalendarDays,
+  LogOut,
+  X
 } from 'lucide-react';
+import { api } from '../services/api';
 
 export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }) {
-  const module7Items = [
+  const menuItems = [
+    {
+      id: 'dashboard',
+      title: 'Dashboard',
+      icon: LayoutDashboard,
+    },
     {
       id: 'employees',
       title: 'Employees & Payroll',
-      subtitle: 'Attendance · Salary · Skills',
       icon: Users,
     },
     {
       id: 'leaves',
       title: 'Leave Management',
-      subtitle: 'Requests · Approvals · Balances',
-      icon: CalendarCheck,
+      icon: CalendarDays,
     },
     {
       id: 'tasks',
-      title: 'Tasks, Roles & Approvals',
-      subtitle: 'Responsibility · Approvals',
+      title: 'Tasks & Approvals',
       icon: CheckSquare,
     },
     {
       id: 'mis',
       title: 'Management MIS',
-      subtitle: 'Owner KPIs · Alerts · Audit',
       icon: BarChart3,
     },
     {
       id: 'trace',
-      title: 'Trace Job',
-      subtitle: 'Job progress · Department status',
-      icon: GitBranch,
+      title: 'Executive Job Matrix',
+      icon: Briefcase,
     },
     {
       id: 'media',
       title: 'Media Library',
-      subtitle: 'Documents · Images · Attachments',
       icon: Folder,
     },
   ];
@@ -58,9 +57,18 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }) {
     if (onClose) onClose();
   };
 
+  const handleSignOut = () => {
+    try {
+      if (api.logout) api.logout();
+    } catch (e) {
+      // ignore
+    }
+    localStorage.removeItem('erp_token');
+    window.location.reload();
+  };
+
   return (
     <>
-      {/* Mobile Backdrop */}
       {isOpen && (
         <div 
           className="sidebar-backdrop" 
@@ -69,67 +77,43 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }) {
         />
       )}
 
-      <aside className={`erp-sidebar ${isOpen ? 'open' : ''}`}>
-        {/* Brand Header */}
-        <div className="sidebar-brand">
-          <div className="brand-logo-box">
-            <Building2 size={20} color="#ffffff" />
-          </div>
-          <div className="brand-text">
-            <span className="brand-name">YASH GROUP</span>
-            <span className="brand-sub">Enterprise ERP</span>
-          </div>
+      <aside className={`reference-sidebar ${isOpen ? 'open' : ''}`}>
+        {/* Brand Header matching reference screenshot */}
+        <div className="reference-sidebar-brand">
+          <div className="reference-brand-subtitle">YASH EARTHING</div>
+          <div className="reference-brand-title">Workforce ERP</div>
           {isOpen && (
-            <button className="sidebar-close-btn" onClick={onClose} aria-label="Close sidebar">
+            <button className="reference-sidebar-close" onClick={onClose} aria-label="Close sidebar">
               <X size={18} />
             </button>
           )}
         </div>
 
-        {/* Navigation Content */}
-        <div className="sidebar-scroll">
-          <div className="sidebar-section">
-            <div className="sidebar-section-header">
-              <span className="section-tag">MODULE 7</span>
-              <span className="section-title">WORKFORCE, ADMIN & MIS</span>
-            </div>
+        {/* Navigation List matching reference screenshot */}
+        <nav className="reference-sidebar-nav">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
 
-            <nav className="sidebar-nav-list">
-              {module7Items.map((item) => {
-                const IconComponent = item.icon;
-                const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                className={`reference-nav-item ${isActive ? 'active' : ''}`}
+                onClick={() => handleSelect(item.id)}
+              >
+                <Icon size={17} className="reference-nav-icon" />
+                <span className="reference-nav-label">{item.title}</span>
+              </button>
+            );
+          })}
+        </nav>
 
-                return (
-                  <button
-                    key={item.id}
-                    className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
-                    onClick={() => handleSelect(item.id)}
-                  >
-                    <div className="nav-item-icon">
-                      <IconComponent size={19} />
-                    </div>
-                    <div className="nav-item-content">
-                      <span className="nav-item-title">{item.title}</span>
-                      <span className="nav-item-sub">{item.subtitle}</span>
-                    </div>
-                    {isActive && <ChevronRight size={15} className="nav-item-arrow" />}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-        </div>
-
-        {/* Clean Enterprise Bottom Profile Card */}
-        <div className="sidebar-user-footer">
-          <div className="sidebar-user-card">
-            <div className="user-avatar-badge">AD</div>
-            <div className="user-text-meta">
-              <span className="user-main-title">Management Demo</span>
-              <span className="user-role-desc">HR & Enterprise Admin</span>
-            </div>
-            <Shield size={16} color="#2563eb" />
-          </div>
+        {/* Bottom Sign Out matching reference screenshot */}
+        <div className="reference-sidebar-footer">
+          <button className="reference-signout-btn" onClick={handleSignOut}>
+            <LogOut size={16} />
+            <span>Sign out</span>
+          </button>
         </div>
       </aside>
     </>

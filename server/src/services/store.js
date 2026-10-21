@@ -67,6 +67,17 @@ export const store = {
     const employees = await prisma.employee.findMany({
       where,
       include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            department: true,
+            shift: true,
+            isLoggedIn: true,
+          },
+        },
         attendance: {
           take: 1,
           orderBy: { workDate: 'desc' },
@@ -79,14 +90,18 @@ export const store = {
       const latestAtt = emp.attendance[0];
       return {
         id: emp.id,
-        employeeCode: emp.employeeCode || `EMP-${String(emp.id).padStart(3, '0')}`,
-        fullName: emp.fullName,
-        department: emp.department || 'Operations',
-        designation: emp.designation || 'Staff',
+        userId: emp.userId,
+        employeeCode: emp.employeeCode || `EMP-${String(emp.id).padStart(4, '0')}`,
+        fullName: emp.fullName || emp.user?.name || 'Staff Member',
+        email: emp.user?.email || '',
+        role: emp.user?.role || 'STAFF',
+        department: emp.department || emp.user?.department || 'Operations',
+        designation: emp.designation || emp.user?.role || 'Staff',
         employmentType: emp.employmentType || 'Full-time',
-        shift: 'General',
+        shift: emp.user?.shift || 'GENERAL',
         salary: emp.salary ? Number(emp.salary) : 0,
         todayAttendance: latestAtt?.status === 'PRESENT' ? 'Present' : 'Absent',
+        isLoggedIn: emp.user?.isLoggedIn ?? false,
         attendanceRate: 100,
         taskCompletionRate: 0,
         targetAchievementRate: 0,
@@ -104,7 +119,10 @@ export const store = {
     const numId = Number(id);
     return await prisma.employee.findUnique({
       where: { id: numId },
-      include: { attendance: { take: 10, orderBy: { workDate: 'desc' } } },
+      include: {
+        user: true,
+        attendance: { take: 10, orderBy: { workDate: 'desc' } },
+      },
     });
   },
 
@@ -113,15 +131,33 @@ export const store = {
       throw new Error('Database disconnected: Cannot persist employee record');
     }
 
+    const trimmedName = (data.fullName || '').trim();
+    if (!trimmedName) {
+      throw new Error('Employee full name is required');
+    }
+
+    // Deduplication check: prevent rapid-click duplicate insertion for same name & department
+    const existing = await prisma.employee.findFirst({
+      where: {
+        fullName: { equals: trimmedName, mode: 'insensitive' },
+        department: data.department || 'Operations',
+      },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
     const employeeCode = data.employeeCode || `EMP-${Date.now().toString().slice(-4)}`;
     return await prisma.employee.create({
       data: {
         employeeCode,
-        fullName: data.fullName,
+        fullName: trimmedName,
         department: data.department || 'Operations',
         designation: data.designation || 'Staff',
         employmentType: data.employmentType || 'Full-time',
         salary: data.salary ? Number(data.salary) : 0,
+        userId: data.userId ? Number(data.userId) : null,
         isActive: true,
       },
     });
@@ -594,20 +630,56 @@ export const store = {
   },
 
   getLeaveBalances: async (employeeId) => {
+    const empId = Number(employeeId);
+    if (prisma && empId) {
+      const emp = await prisma.employee.findUnique({ where: { id: empId } });
+      if (!emp) {
+        throw new Error(`Employee with ID ${empId} not found in database`);
+      }
+    }
+
+    // Compute dynamic leave deductions for approved leaves
+    const approvedCasual = moduleLocalState.leaveRequests
+      .filter((r) => r.employeeId === empId && r.status === 'APPROVED' && r.leaveType === 'CASUAL')
+      .reduce((sum, r) => sum + (r.requestedDays || 1), 0);
+    const approvedSick = moduleLocalState.leaveRequests
+      .filter((r) => r.employeeId === empId && r.status === 'APPROVED' && r.leaveType === 'SICK')
+      .reduce((sum, r) => sum + (r.requestedDays || 1), 0);
+    const approvedEarned = moduleLocalState.leaveRequests
+      .filter((r) => r.employeeId === empId && r.status === 'APPROVED' && r.leaveType === 'EARNED')
+      .reduce((sum, r) => sum + (r.requestedDays || 1), 0);
+
     return {
-      CASUAL: { allocated: 12, used: 0, available: 12 },
-      SICK: { allocated: 10, used: 0, available: 10 },
-      EARNED: { allocated: 15, used: 0, available: 15 },
+      CASUAL: { allocated: 12, used: approvedCasual, available: Math.max(0, 12 - approvedCasual) },
+      SICK: { allocated: 10, used: approvedSick, available: Math.max(0, 10 - approvedSick) },
+      EARNED: { allocated: 15, used: approvedEarned, available: Math.max(0, 15 - approvedEarned) },
     };
   },
 
   createLeaveRequest: async (data, user) => {
+    const empId = Number(data.employeeId);
+    if (!empId) {
+      throw new Error('Valid employeeId is required to apply for leave');
+    }
+
+    let emp = null;
+    if (prisma) {
+      emp = await prisma.employee.findUnique({
+        where: { id: empId },
+      });
+      if (!emp) {
+        throw new Error(`Employee with ID ${empId} was not found in the database`);
+      }
+    }
+
     const req = {
       id: nextLeaveId++,
       requestId: `LR-${Date.now().toString().slice(-4)}`,
-      employeeId: Number(data.employeeId),
-      employeeName: user?.name || 'Staff Member',
-      department: data.department || 'Operations',
+      employeeId: empId,
+      employeeCode: emp?.employeeCode || `EMP-${String(empId).padStart(3, '0')}`,
+      employeeName: emp?.fullName || 'Staff Member',
+      department: emp?.department || data.department || 'Operations',
+      designation: emp?.designation || 'Staff',
       leaveType: data.leaveType || 'CASUAL',
       startDate: data.startDate,
       endDate: data.endDate,
@@ -615,6 +687,8 @@ export const store = {
       reason: data.reason || 'Personal necessity',
       status: 'PENDING',
       appliedAt: new Date().toISOString(),
+      submittedAt: new Date().toISOString(),
+      appliedBy: user?.name || 'Authorized User',
     };
     moduleLocalState.leaveRequests.unshift(req);
     return req;
@@ -626,9 +700,10 @@ export const store = {
       req.status = 'APPROVED';
       req.reviewedBy = user?.name || 'Manager';
       req.reviewedAt = new Date().toISOString();
-      return { request: req, updatedBalances: { CASUAL: { available: 11 } } };
+      const balances = await store.getLeaveBalances(req.employeeId);
+      return { request: req, updatedBalances: balances };
     }
-    throw new Error('Leave request not found');
+    throw new Error(`Leave request #${id} not found`);
   },
 
   rejectLeaveRequest: async (id, reason, user) => {

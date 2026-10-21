@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
+import WorkforceDashboard from './pages/WorkforceDashboard';
 import EmployeesPayroll from './pages/EmployeesPayroll';
 import TasksApprovals from './pages/TasksApprovals';
 import LeaveManagement from './pages/LeaveManagement';
@@ -8,13 +9,13 @@ import ManagementMIS from './pages/ManagementMIS';
 import MediaLibrary from './pages/MediaLibrary';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('employees');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isAssignTaskOpen, setIsAssignTaskOpen] = useState(false);
 
   return (
-    <div className="app-shell">
-      {/* Left Sidebar */}
+    <div className="reference-app-shell">
+      {/* Left Dark Teal Sidebar */}
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -22,18 +23,18 @@ export default function App() {
         onClose={() => setIsMobileSidebarOpen(false)}
       />
 
-      {/* Main Content Area */}
-      <div className="app-main-layout">
+      {/* Main Layout Area */}
+      <div className="reference-main-layout">
         <Header
           activeTab={activeTab}
           onToggleMobileMenu={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-          onQuickAdd={() => {
-            setActiveTab('tasks');
-            setIsAssignTaskOpen(true);
-          }}
         />
 
-        <main style={{ flex: 1, minWidth: 0 }}>
+        <main className="reference-main-content">
+          {activeTab === 'dashboard' && (
+            <WorkforceDashboard onNavigate={(tab) => setActiveTab(tab)} />
+          )}
+
           {activeTab === 'employees' && (
             <EmployeesPayroll
               onOpenAssignTask={() => {
@@ -68,19 +69,6 @@ export default function App() {
             <MediaLibrary />
           )}
         </main>
-
-        <footer
-          style={{
-            borderTop: '1px solid #e2e8f0',
-            background: '#ffffff',
-            padding: '1rem 1.75rem',
-            textAlign: 'center',
-            fontSize: '0.75rem',
-            color: '#64748b',
-          }}
-        >
-          YASH Group ERP Mini · Module 7: Workforce, Admin, Attendance, Payroll, Tasks & MIS · Production Ready
-        </footer>
       </div>
     </div>
   );
