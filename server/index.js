@@ -18,6 +18,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 
+import errorHandler from "./common/errorHandler.js";
+import modulesRouter from "./modules/index.js";
 import financeRoutes from "./modules/finance/finance.routes.js";
 import userRoutes from "./modules/users/user.routes.js";
 import leadRoutes from "./modules/leads/lead.routes.js";
@@ -28,32 +30,28 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Health check
-app.get("/", (req, res) => {
-  res.json({
-    name: "YASH GROUP ERP API",
-    status: "running",
-    modules: ["finance", "users", "leads", "services"],
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "YASH ERP backend is running",
+    timestamp: new Date().toISOString()
   });
 });
 
-// ---- Modules (add new ones here) ----
+// Mounted modules
+app.use("/api", modulesRouter);
 app.use("/api/finance", financeRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/services", serviceRoutes);
 
-// ---- 404 ----
+// Error handler & 404
+app.use(errorHandler);
 app.use((req, res) => {
-  res.status(404).json({ message: "Route not found" });
-});
-
-// ---- Central error handler (turns thrown httpError(status) into JSON) ----
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, next) => {
-  console.error("[error]", err);
-  const status = err.status || 500;
-  res.status(status).json({ message: err.message || "Internal server error" });
+  res.status(404).json({
+    success: false,
+    message: "API endpoint not found"
+  });
 });
 
 const PORT = process.env.PORT || 5000;
