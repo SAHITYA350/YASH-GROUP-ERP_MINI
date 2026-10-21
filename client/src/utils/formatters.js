@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 export function fmtDate(value) {
   return value
     ? new Intl.DateTimeFormat("en-IN", {
@@ -22,3 +23,14 @@ export function fmtDateTime(value) {
 export function dateInputValue(value) {
   return value ? new Date(value).toISOString().slice(0, 10) : "";
 }
+=======
+export const money = (value) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+
+export const label = (value) =>
+  value?.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase());
+>>>>>>> origin/dev

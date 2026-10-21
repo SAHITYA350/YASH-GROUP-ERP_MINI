@@ -1,21 +1,34 @@
 {
   "name": "server",
   "version": "1.0.0",
+<<<<<<< HEAD
   "description": "YASH-GROUP ERP — Production & Quality Module API",
+=======
+  "description": "Yash Group ERP API",
+>>>>>>> origin/dev
   "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+<<<<<<< HEAD
     "test": "node test_suite.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "db:seed": "node seed.js"
+=======
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "seed": "prisma db seed",
+    "test": "echo \"Error: no test specified\" && exit 1"
+>>>>>>> origin/dev
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+<<<<<<< HEAD
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
@@ -27,5 +40,31 @@
   },
   "devDependencies": {
     "prisma": "^7.10.1"
+=======
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "pino": "^9.6.0",
+    "pino-http": "^10.4.0",
+    "prisma": "^5.22.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9",
+    "prisma": "^5.22.0",
+    "supertest": "^7.0.0",
+    "vitest": "^3.0.5"
+>>>>>>> origin/dev
   }
 }
