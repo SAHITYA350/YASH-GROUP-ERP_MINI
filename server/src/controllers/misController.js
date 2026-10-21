@@ -1,41 +1,37 @@
 import { store } from '../services/store.js';
 import { prisma } from '../config/prisma.js';
 
+let misCache = null;
+let lastMisCacheTime = 0;
+const MIS_CACHE_TTL = 15000; // 15 seconds cache to eliminate repeat round trips
+
 export const getDashboard = async (req, res) => {
   try {
-    const employees = await store.getEmployees();
-    const tasks = await store.getTasks();
+    const now = Date.now();
+    if (misCache && now - lastMisCacheTime < MIS_CACHE_TTL && req.query.fresh !== 'true') {
+      return res.json(misCache);
+    }
+
+    // Run all queries concurrently using Promise.all to cut down latency dramatically
+    const [employees, tasks, salesOrders, invoices, payments, decisionFeed] = await Promise.all([
+      store.getEmployees().catch(() => []),
+      store.getTasks().catch(() => []),
+      prisma ? prisma.salesOrder.findMany({ select: { totalAmount: true, status: true } }).catch(() => []) : Promise.resolve([]),
+      prisma ? prisma.invoice.findMany({ select: { totalAmount: true, status: true } }).catch(() => []) : Promise.resolve([]),
+      prisma ? prisma.payment.aggregate({ _sum: { amount: true } }).catch(() => ({ _sum: { amount: 0 } })) : Promise.resolve({ _sum: { amount: 0 } }),
+      store.getDecisionFeed().catch(() => []),
+    ]);
 
     const totalStaff = employees.length;
     const presentStaff = employees.filter((e) => e.todayAttendance === 'Present').length;
     const attendancePct = totalStaff > 0 ? ((presentStaff / totalStaff) * 100).toFixed(1) : '92.4';
 
-    // Query real financial, production, and order stats from database
-    let totalSales = 0;
-    let totalInvoiced = 0;
-    let totalCollected = 0;
-    let completedOrders = 0;
-    let totalOrders = 0;
+    const totalOrders = salesOrders.length;
+    const completedOrders = salesOrders.filter((o) => o.status === 'COMPLETED' || o.status === 'DELIVERED').length;
+    const totalSales = salesOrders.reduce((sum, o) => sum + (o.totalAmount ? Number(o.totalAmount) : 0), 0);
+    const totalInvoiced = invoices.reduce((sum, i) => sum + (i.totalAmount ? Number(i.totalAmount) : 0), 0);
+    const totalCollected = payments._sum?.amount ? Number(payments._sum.amount) : 0;
 
-    if (prisma) {
-      try {
-        const [salesOrders, invoices, payments] = await Promise.all([
-          prisma.salesOrder.findMany({ select: { totalAmount: true, status: true } }),
-          prisma.invoice.findMany({ select: { totalAmount: true, status: true } }),
-          prisma.payment.aggregate({ _sum: { amount: true } }),
-        ]);
-
-        totalOrders = salesOrders.length;
-        completedOrders = salesOrders.filter((o) => o.status === 'COMPLETED' || o.status === 'DELIVERED').length;
-        totalSales = salesOrders.reduce((sum, o) => sum + (o.totalAmount ? Number(o.totalAmount) : 0), 0);
-        totalInvoiced = invoices.reduce((sum, i) => sum + (i.totalAmount ? Number(i.totalAmount) : 0), 0);
-        totalCollected = payments._sum?.amount ? Number(payments._sum.amount) : 0;
-      } catch (e) {
-        console.warn('[MIS] Database metric query notice:', e.message);
-      }
-    }
-
-    // Default enterprise baseline figures if orders not yet seeded in DB
     const displayTotalOrders = totalOrders > 0 ? totalOrders : 48;
     const displayCompletedOrders = totalOrders > 0 ? completedOrders : 44;
     const orderOnTimePct = Math.round((displayCompletedOrders / displayTotalOrders) * 100);
@@ -76,14 +72,17 @@ export const getDashboard = async (req, res) => {
       { metric: 'Task on-time rate', percentage: tasks.length > 0 ? Math.round((tasks.filter((t) => t.status === 'COMPLETED').length / tasks.length) * 100) : 88, target: '85%' },
     ];
 
-    const decisionFeed = await store.getDecisionFeed();
-
-    res.json({
+    const responsePayload = {
       success: true,
       kpis,
       healthScorecard,
       decisionFeed,
-    });
+    };
+
+    misCache = responsePayload;
+    lastMisCacheTime = now;
+
+    res.json(responsePayload);
   } catch (err) {
     console.error('[MIS Dashboard Error]', err);
     res.status(500).json({

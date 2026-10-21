@@ -5,9 +5,18 @@ import MetricCard from '../components/MetricCard';
 import { Search, Download, Plus, CheckSquare, Edit3, Eye, DollarSign, X, AlertCircle } from 'lucide-react';
 
 export default function EmployeesPayroll({ onOpenAssignTask }) {
-  const [employees, setEmployees] = useState([]);
+  const [employees, setEmployees] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('erp_cache_employees');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [todos, setTodos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    return !sessionStorage.getItem('erp_cache_employees');
+  });
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('All');
@@ -17,9 +26,23 @@ export default function EmployeesPayroll({ onOpenAssignTask }) {
   const [editingEmp, setEditingEmp] = useState(null);
   const [viewingPerfEmp, setViewingPerfEmp] = useState(null);
   const [showPayrollDrawer, setShowPayrollDrawer] = useState(false);
-  const [payrollData, setPayrollData] = useState([]);
+  const [payrollData, setPayrollData] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('erp_cache_payroll');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [activeTabSub, setActiveTabSub] = useState('employees');
-  const [loginLogs, setLoginLogs] = useState([]);
+  const [loginLogs, setLoginLogs] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('erp_cache_logs');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [logsLoading, setLogsLoading] = useState(false);
 
   // Form state for new employee
@@ -42,15 +65,20 @@ export default function EmployeesPayroll({ onOpenAssignTask }) {
 
   const fetchEmployees = async () => {
     try {
-      setLoading(true);
+      if (employees.length === 0) setLoading(true);
       setError(null);
       const res = await api.getEmployees({ department: deptFilter, search });
       const empList = res.data || res.employees || [];
       setEmployees(empList);
+      try {
+        sessionStorage.setItem('erp_cache_employees', JSON.stringify(empList));
+      } catch (e) {}
       fetchLoginLogs(empList);
     } catch (err) {
       console.error('Error fetching employees:', err);
-      setError(err.message || 'Failed to connect to database for workforce records');
+      if (employees.length === 0) {
+        setError(err.message || 'Failed to connect to database for workforce records');
+      }
     } finally {
       setLoading(false);
     }
@@ -69,6 +97,9 @@ export default function EmployeesPayroll({ onOpenAssignTask }) {
     try {
       const res = await api.getPayroll();
       setPayrollData(res.data);
+      try {
+        sessionStorage.setItem('erp_cache_payroll', JSON.stringify(res.data));
+      } catch (e) {}
     } catch (err) {
       console.error('Error fetching payroll:', err);
     }
@@ -111,6 +142,9 @@ export default function EmployeesPayroll({ onOpenAssignTask }) {
 
       logs.sort((a, b) => (b.isLoggedIn ? 1 : 0) - (a.isLoggedIn ? 1 : 0));
       setLoginLogs(logs);
+      try {
+        sessionStorage.setItem('erp_cache_logs', JSON.stringify(logs));
+      } catch (e) {}
     } catch (err) {
       console.error('Error fetching login logs:', err);
     } finally {
@@ -171,9 +205,22 @@ export default function EmployeesPayroll({ onOpenAssignTask }) {
     e.preventDefault();
     if (!editingEmp) return;
     try {
-      await api.updateEmployee(editingEmp.id, editingEmp);
+      const attendanceVal = editingEmp.todayAttendance || 'Present';
+      const updatedEmp = {
+        ...editingEmp,
+        todayAttendance: attendanceVal,
+      };
+      // Optimistic instant update so user sees "Present" immediately
+      setEmployees((prev) => {
+        const next = prev.map((emp) => (emp.id === editingEmp.id ? { ...emp, ...updatedEmp } : emp));
+        try {
+          sessionStorage.setItem('erp_cache_employees', JSON.stringify(next));
+        } catch (err) {}
+        return next;
+      });
       setEditingEmp(null);
-      fetchEmployees();
+      await api.updateEmployee(editingEmp.id, updatedEmp);
+      await fetchEmployees();
       fetchPayroll();
     } catch (err) {
       alert(err.message);
@@ -264,10 +311,10 @@ export default function EmployeesPayroll({ onOpenAssignTask }) {
         />
         <MetricCard 
           label="Present" 
-          value={employees.filter(e => e.todayAttendance === 'Present').length.toString()} 
-          sub={employees.length > 0 ? `${Math.round((employees.filter(e => e.todayAttendance === 'Present').length / employees.length) * 100)}% active` : "0%"} 
+          value={employees.filter(e => String(e.todayAttendance || '').toLowerCase() === 'present').length.toString()} 
+          sub={employees.length > 0 ? `${Math.round((employees.filter(e => String(e.todayAttendance || '').toLowerCase() === 'present').length / employees.length) * 100)}% active` : "0%"} 
           accent="green" 
-          barWidth={employees.length > 0 ? `${Math.round((employees.filter(e => e.todayAttendance === 'Present').length / employees.length) * 100)}%` : "0%"} 
+          barWidth={employees.length > 0 ? `${Math.round((employees.filter(e => String(e.todayAttendance || '').toLowerCase() === 'present').length / employees.length) * 100)}%` : "0%"} 
         />
         <MetricCard 
           label="Avg Task" 
@@ -708,8 +755,8 @@ export default function EmployeesPayroll({ onOpenAssignTask }) {
                               )}
                             </td>
                             <td>
-                              <span className={`status-pill ${emp.todayAttendance === 'Present' ? 'present' : 'absent'}`}>
-                                {emp.todayAttendance}
+                              <span className={`status-pill ${String(emp.todayAttendance || '').toLowerCase() === 'present' ? 'present' : 'absent'}`}>
+                                {String(emp.todayAttendance || '').toLowerCase() === 'present' ? 'Present' : (emp.todayAttendance || 'Absent')}
                               </span>
                             </td>
                             <td style={{ fontWeight: 600 }}>{emp.attendanceRate}%</td>
