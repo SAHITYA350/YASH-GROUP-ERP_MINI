@@ -109,15 +109,6 @@ export default function DatePickerField({
   const handleCalendarButtonClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    // Try native picker first if supported, and also toggle our custom popup
-    try {
-      if (nativeInputRef.current && typeof nativeInputRef.current.showPicker === 'function') {
-        nativeInputRef.current.showPicker();
-        return;
-      }
-    } catch (err) {
-      // Fallback to custom popup below
-    }
     setShowPopup((prev) => !prev);
   };
 
@@ -173,6 +164,7 @@ export default function DatePickerField({
           required={required}
           placeholder={placeholder}
           className="date-picker-input-field"
+          onClick={() => setShowPopup(true)}
           onChange={(e) => onChange?.(e.target.value)}
         />
         <button
