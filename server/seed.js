@@ -9,7 +9,9 @@ const dateOffset = (days) => {
 
 async function seedDatabase() {
   try {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(
+    async (tx) => {
+
       const productionManager = await tx.user.upsert({
         where: { email: "demo.production@yashgroup.example" },
         update: {
@@ -432,12 +434,37 @@ async function seedDatabase() {
           number: "DEMO-WO-003",
           salesOrder: salesOrders[2],
           quantity: 300,
-          status: "PLANNED",
-          good: 0,
+          status: "COMPLETED",
+          good: 300,
           rejected: 0,
-          produced: 0,
-          startOffset: 4,
-          endOffset: 12,
+          produced: 300,
+          startOffset: -10,
+          endOffset: -2,
+          inspection: {
+            number: "DEMO-QI-003",
+            status: "PASS",
+            inspected: 300,
+            accepted: 300,
+            rejected: 0,
+          },
+        },
+        {
+          number: "DEMO-WO-004",
+          salesOrder: salesOrders[0],
+          quantity: 150,
+          status: "QC_HOLD",
+          good: 120,
+          rejected: 30,
+          produced: 150,
+          startOffset: -5,
+          endOffset: 2,
+          inspection: {
+            number: "DEMO-QI-004",
+            status: "FAIL",
+            inspected: 150,
+            accepted: 120,
+            rejected: 30,
+          },
         },
       ];
       const workOrders = [];
@@ -485,29 +512,34 @@ async function seedDatabase() {
           },
         });
         workOrders.push(workOrder);
-        const machine = machines[workOrders.length - 1];
+        const machine = machines[(workOrders.length - 1) % machines.length];
 
         if (workOrder.bomRevisionId) {
-          await tx.workOrderItem.upsert({
+          const existingItem = await tx.workOrderItem.findFirst({
             where: {
-              workOrderId_productId: {
-                workOrderId: workOrder.id,
-                productId: products[2].id,
-              },
-            },
-            update: {
-              plannedQuantity: spec.quantity * 0.8 * 1.02,
-              issuedQuantity: spec.produced * 0.8,
-              consumedQuantity: spec.produced * 0.8,
-            },
-            create: {
               workOrderId: workOrder.id,
               productId: products[2].id,
-              plannedQuantity: spec.quantity * 0.8 * 1.02,
-              issuedQuantity: spec.produced * 0.8,
-              consumedQuantity: spec.produced * 0.8,
             },
           });
+          const itemData = {
+            plannedQuantity: spec.quantity * 0.8 * 1.02,
+            issuedQuantity: spec.produced * 0.8,
+            consumedQuantity: spec.produced * 0.8,
+          };
+          if (existingItem) {
+            await tx.workOrderItem.update({
+              where: { id: existingItem.id },
+              data: itemData,
+            });
+          } else {
+            await tx.workOrderItem.create({
+              data: {
+                workOrderId: workOrder.id,
+                productId: products[2].id,
+                ...itemData,
+              },
+            });
+          }
         }
 
         const existingOperation = await tx.operationLog.findFirst({
@@ -585,19 +617,21 @@ async function seedDatabase() {
           });
 
           if (spec.inspection.rejected > 0) {
+            const dCode = spec.number === "DEMO-WO-004" ? "DEMO-DIMENSION-ERR" : "DEMO-SURFACE-FINISH";
             const defect = await tx.qualityDefect.findFirst({
               where: {
                 inspectionId: inspection.id,
-                defectCode: "DEMO-SURFACE-FINISH",
+                defectCode: dCode,
               },
             });
             const defectData = {
               inspectionId: inspection.id,
-              defectCode: "DEMO-SURFACE-FINISH",
-              category: "Surface finish",
-              description:
-                "Minor surface blemish found during visual inspection.",
-              severity: "MEDIUM",
+              defectCode: dCode,
+              category: spec.number === "DEMO-WO-004" ? "Dimensions" : "Surface finish",
+              description: spec.number === "DEMO-WO-004"
+                ? "Critical dimensional deviation exceeding tolerance limits."
+                : "Minor surface blemish found during visual inspection.",
+              severity: spec.number === "DEMO-WO-004" ? "HIGH" : "MEDIUM",
               quantity: spec.inspection.rejected,
               status: "IN_REWORK",
               disposition: "Repair and reinspect",
@@ -710,7 +744,7 @@ async function seedDatabase() {
           status: "OPEN",
         },
       });
-    });
+    }, { maxWait: 60000, timeout: 180000 });
     console.log("Demo data seeded successfully.");
     console.log(
       "Created or refreshed 2 customers, 3 products, 3 sales orders, 3 work orders, and related production and quality records.",
